@@ -1,0 +1,734 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>京都3泊4日 旅行プラン地図</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css"/>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #f5f5f5 0%, #e8e8e8 100%);
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        /* ヘッダー */
+        .header {
+            background: linear-gradient(135deg, #d4145a 0%, #fbb034 100%);
+            color: white;
+            padding: 40px 30px;
+            border-radius: 12px;
+            margin-bottom: 30px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+        }
+
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            font-size: 1.1em;
+            opacity: 0.95;
+        }
+
+        /* 地図セクション */
+        .map-section {
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        #map {
+            height: 600px;
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.15);
+            z-index: 1;
+        }
+
+        #map-fallback {
+            display: none;
+            height: 600px;
+            border-radius: 12px;
+            background: #f0f0f0;
+            border: 2px solid #ccc;
+            padding: 20px;
+        }
+
+        /* オフラインバナー */
+        #offline-banner {
+            display: none;
+            background: #fff3cd;
+            border: 1px solid #ffc107;
+            color: #856404;
+            padding: 15px;
+            border-radius: 6px;
+            margin-bottom: 20px;
+            font-weight: 500;
+        }
+
+        /* 凡例 */
+        .legend {
+            background: white;
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+
+        .legend h3 {
+            margin-bottom: 15px;
+            color: #333;
+            font-size: 1.1em;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            margin-bottom: 10px;
+            font-size: 0.95em;
+        }
+
+        .legend-marker {
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            margin-right: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 16px;
+        }
+
+        .legend-marker.start {
+            background: #4CAF50;
+        }
+
+        .legend-marker.landmark {
+            background: #FF9800;
+        }
+
+        .legend-marker.food {
+            background: #E91E63;
+        }
+
+        .legend-marker.end {
+            background: #2196F3;
+        }
+
+        .legend-marker.nara {
+            background: #9C27B0;
+        }
+
+        .legend-line {
+            height: 3px;
+            flex: 1;
+            margin-right: 12px;
+        }
+
+        /* タイムライン */
+        .timeline-section {
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+        }
+
+        .timeline-section h2 {
+            margin-bottom: 30px;
+            color: #333;
+            font-size: 1.8em;
+        }
+
+        .timeline {
+            position: relative;
+            padding: 0;
+        }
+
+        .timeline::before {
+            content: '';
+            position: absolute;
+            left: 50px;
+            top: 0;
+            bottom: 0;
+            width: 3px;
+            background: linear-gradient(180deg, #FF9800 0%, #E91E63 50%, #2196F3 100%);
+            border-radius: 2px;
+        }
+
+        .timeline-card {
+            margin-bottom: 40px;
+            position: relative;
+            padding-left: 150px;
+        }
+
+        .timeline-day {
+            position: absolute;
+            left: 0;
+            top: 0;
+            width: 100px;
+            height: 100px;
+            background: linear-gradient(135deg, #FF9800 0%, #E91E63 100%);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+            font-size: 1.3em;
+            box-shadow: 0 4px 12px rgba(255, 152, 0, 0.3);
+            z-index: 2;
+        }
+
+        .timeline-card:nth-child(2) .timeline-day {
+            background: linear-gradient(135deg, #FF9800 0%, #FFC107 100%);
+            box-shadow: 0 4px 12px rgba(255, 193, 7, 0.3);
+        }
+
+        .timeline-card:nth-child(3) .timeline-day {
+            background: linear-gradient(135deg, #FFC107 0%, #FFEB3B 100%);
+            box-shadow: 0 4px 12px rgba(255, 235, 59, 0.3);
+        }
+
+        .timeline-card:nth-child(4) .timeline-day {
+            background: linear-gradient(135deg, #2196F3 0%, #03A9F4 100%);
+            box-shadow: 0 4px 12px rgba(33, 150, 243, 0.3);
+        }
+
+        .card {
+            background: #f9f9f9;
+            border-left: 5px solid #FF9800;
+            padding: 20px;
+            border-radius: 8px;
+        }
+
+        .timeline-card:nth-child(2) .card {
+            border-left-color: #FFC107;
+        }
+
+        .timeline-card:nth-child(3) .card {
+            border-left-color: #FFEB3B;
+        }
+
+        .timeline-card:nth-child(4) .card {
+            border-left-color: #2196F3;
+        }
+
+        .card h3 {
+            margin-bottom: 15px;
+            color: #333;
+            font-size: 1.3em;
+        }
+
+        .spots-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            margin-bottom: 15px;
+        }
+
+        .spot {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+        }
+
+        .spot-icon {
+            width: 70px;
+            height: 70px;
+            margin-bottom: 8px;
+            background: white;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        .spot-label {
+            font-size: 0.85em;
+            font-weight: 500;
+            color: #555;
+            max-width: 100px;
+        }
+
+        .tr-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            background: #e3f2fd;
+            border: 1px solid #90caf9;
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 0.85em;
+            color: #1976d2;
+            margin: 10px 0;
+            font-weight: 500;
+        }
+
+        .note {
+            background: #fff9e6;
+            border-left: 4px solid #FFB300;
+            padding: 10px 12px;
+            border-radius: 4px;
+            font-size: 0.9em;
+            color: #666;
+            margin-top: 12px;
+        }
+
+        /* フッター */
+        .footer {
+            background: #333;
+            color: white;
+            text-align: center;
+            padding: 20px;
+            border-radius: 12px;
+            margin-top: 30px;
+            font-size: 0.9em;
+        }
+
+        .footer a {
+            color: #FFB300;
+            text-decoration: none;
+        }
+
+        /* モバイル対応 */
+        @media (max-width: 1000px) {
+            .map-section {
+                grid-template-columns: 1fr;
+            }
+
+            .header h1 {
+                font-size: 1.8em;
+            }
+
+            .timeline::before {
+                left: 30px;
+            }
+
+            .timeline-card {
+                padding-left: 120px;
+            }
+
+            .timeline-day {
+                width: 80px;
+                height: 80px;
+                font-size: 1em;
+            }
+        }
+
+        @media (max-width: 700px) {
+            .header {
+                padding: 25px 15px;
+            }
+
+            .header h1 {
+                font-size: 1.5em;
+            }
+
+            .spots-row {
+                justify-content: center;
+            }
+
+            .timeline::before {
+                left: 20px;
+            }
+
+            .timeline-card {
+                padding-left: 90px;
+            }
+
+            .timeline-day {
+                width: 60px;
+                height: 60px;
+                font-size: 0.9em;
+            }
+
+            .spot-icon {
+                width: 60px;
+                height: 60px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- ヘッダー -->
+        <div class="header">
+            <h1>🗾 京都3泊4日 旅行プラン</h1>
+            <p>東京 → 京都 → 奈良 → 東京</p>
+        </div>
+
+        <!-- オフラインバナー -->
+        <div id="offline-banner">
+            ⚠ 地図をオンラインで表示するにはインターネット接続が必要です。下のタイムラインでルートを確認できます。
+        </div>
+
+        <!-- 地図とレジェンド -->
+        <div class="map-section">
+            <div id="map"></div>
+            <div class="legend">
+                <h3>🗺 凡例</h3>
+                <div class="legend-item">
+                    <div class="legend-marker start">🚄</div>
+                    <span>出発地・途中駅</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-marker landmark">⛩</div>
+                    <span>寺社仏閣</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-marker food">🍽</div>
+                    <span>食事スポット</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-marker nara">🦌</div>
+                    <span>奈良エリア</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-marker end">🎯</div>
+                    <span>到着地</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-line" style="background: #FF9800; height: 3px;"></div>
+                    <span>メインルート</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- タイムライン -->
+        <div class="timeline-section">
+            <h2>📅 日程とスポット</h2>
+            <div class="timeline">
+                <!-- 1日目 -->
+                <div class="timeline-card">
+                    <div class="timeline-day">1日目</div>
+                    <div class="card">
+                        <h3>東京 → 京都</h3>
+                        <div class="tr-badge">🚄 新幹線 2時間15分</div>
+                        <h4 style="margin-top: 15px; color: #555;">午後</h4>
+                        <div class="spots-row">
+                            <div class="spot">
+                                <div class="spot-icon">
+                                    <svg width="70" height="70" viewBox="0 0 70 70">
+                                        <rect width="70" height="70" fill="#FFF8E1"/>
+                                        <path d="M20 50 L50 50 L45 25 L25 25 Z" fill="#DAA520" stroke="#8B6914" stroke-width="2"/>
+                                        <circle cx="30" cy="35" r="3" fill="#8B6914"/>
+                                        <circle cx="40" cy="35" r="3" fill="#8B6914"/>
+                                        <rect x="32" y="40" width="6" height="6" fill="#8B6914"/>
+                                    </svg>
+                                </div>
+                                <span class="spot-label">金閣寺</span>
+                            </div>
+                            <div class="spot">
+                                <div class="spot-icon">
+                                    <svg width="70" height="70" viewBox="0 0 70 70">
+                                        <rect width="70" height="70" fill="#F0E6D2"/>
+                                        <g fill="#8B7355">
+                                            <rect x="15" y="20" width="40" height="35" stroke="#654321" stroke-width="2"/>
+                                            <circle cx="25" cy="30" r="2" fill="#654321"/>
+                                            <circle cx="45" cy="30" r="2" fill="#654321"/>
+                                            <rect x="20" y="45" width="30" height="8" fill="#654321"/>
+                                        </g>
+                                    </svg>
+                                </div>
+                                <span class="spot-label">龍安寺</span>
+                            </div>
+                        </div>
+                        <h4 style="margin-top: 15px; color: #555;">夜</h4>
+                        <div class="spots-row">
+                            <div class="spot">
+                                <div class="spot-icon">
+                                    <svg width="70" height="70" viewBox="0 0 70 70">
+                                        <rect width="70" height="70" fill="#1a1a2e"/>
+                                        <path d="M20 45 L50 45 L48 25 L22 25 Z" fill="#FF6B6B" opacity="0.9"/>
+                                        <circle cx="35" cy="30" r="3" fill="#FFD700"/>
+                                        <circle cx="28" cy="38" r="2" fill="#FFD700"/>
+                                        <circle cx="42" cy="38" r="2" fill="#FFD700"/>
+                                    </svg>
+                                </div>
+                                <span class="spot-label">祇園散策</span>
+                            </div>
+                        </div>
+                        <div class="note">💡 祇園はお昼間でも散策できますが、夜間は舞妓さんを見かけることもあります</div>
+                    </div>
+                </div>
+
+                <!-- 2日目 -->
+                <div class="timeline-card">
+                    <div class="timeline-day">2日目</div>
+                    <div class="card">
+                        <h3>京都市内巡り</h3>
+                        <h4 style="color: #555;">午前</h4>
+                        <div class="spots-row">
+                            <div class="spot">
+                                <div class="spot-icon">
+                                    <svg width="70" height="70" viewBox="0 0 70 70">
+                                        <rect width="70" height="70" fill="#FFE6CC"/>
+                                        <g fill="#D2691E">
+                                            <circle cx="35" cy="25" r="15"/>
+                                            <rect x="15" y="35" width="40" height="20" rx="3"/>
+                                            <circle cx="25" cy="42" r="2" fill="#8B4513"/>
+                                            <circle cx="35" cy="42" r="2" fill="#8B4513"/>
+                                            <circle cx="45" cy="42" r="2" fill="#8B4513"/>
+                                        </g>
+                                    </svg>
+                                </div>
+                                <span class="spot-label">伏見稲荷大社</span>
+                            </div>
+                        </div>
+                        <div class="tr-badge">🚋 電車で移動</div>
+                        <h4 style="margin-top: 15px; color: #555;">午後</h4>
+                        <div class="spots-row">
+                            <div class="spot">
+                                <div class="spot-icon">
+                                    <svg width="70" height="70" viewBox="0 0 70 70">
+                                        <rect width="70" height="70" fill="#F5DEB3"/>
+                                        <path d="M20 35 L50 35 L45 15 L25 15 Z" fill="#CD853F" stroke="#8B4513" stroke-width="2"/>
+                                        <rect x="30" y="40" width="10" height="15" fill="#8B4513"/>
+                                    </svg>
+                                </div>
+                                <span class="spot-label">清水寺</span>
+                            </div>
+                            <div class="spot">
+                                <div class="spot-icon">
+                                    <svg width="70" height="70" viewBox="0 0 70 70">
+                                        <rect width="70" height="70" fill="#FFE4B5"/>
+                                        <g fill="#A0522D" stroke="#654321" stroke-width="1">
+                                            <circle cx="20" cy="25" r="4"/>
+                                            <circle cx="35" cy="20" r="4"/>
+                                            <circle cx="50" cy="25" r="4"/>
+                                            <path d="M20 25 L35 20 L50 25 L35 35 Z" fill="none" stroke="#654321" stroke-width="2"/>
+                                            <rect x="25" y="40" width="20" height="10" fill="#A0522D"/>
+                                        </g>
+                                    </svg>
+                                </div>
+                                <span class="spot-label">三年坂</span>
+                            </div>
+                        </div>
+                        <h4 style="margin-top: 15px; color: #555;">夜</h4>
+                        <div class="spots-row">
+                            <div class="spot">
+                                <div class="spot-icon">
+                                    <svg width="70" height="70" viewBox="0 0 70 70">
+                                        <rect width="70" height="70" fill="#FFF0F5"/>
+                                        <g fill="#FF69B4">
+                                            <rect x="15" y="20" width="40" height="25" rx="2"/>
+                                            <circle cx="25" cy="32" r="3" fill="#FF1493"/>
+                                            <circle cx="45" cy="32" r="3" fill="#FF1493"/>
+                                        </g>
+                                        <path d="M20 50 Q35 55 50 50" stroke="#FF69B4" stroke-width="2" fill="none"/>
+                                    </svg>
+                                </div>
+                                <span class="spot-label">先斗町で夕食</span>
+                            </div>
+                        </div>
+                        <div class="note">🍽 先斗町は京都の有名な川床（かわどこ）料理街。夏季限定の涼しい雰囲気で食事できます</div>
+                    </div>
+                </div>
+
+                <!-- 3日目 -->
+                <div class="timeline-card">
+                    <div class="timeline-day">3日目</div>
+                    <div class="card">
+                        <h3>嵐山 → 二条城</h3>
+                        <h4 style="color: #555;">午前〜午後</h4>
+                        <div class="spots-row">
+                            <div class="spot">
+                                <div class="spot-icon">
+                                    <svg width="70" height="70" viewBox="0 0 70 70">
+                                        <rect width="70" height="70" fill="#E8F5E9"/>
+                                        <g fill="#228B22" stroke="#1B5E20" stroke-width="1.5">
+                                            <polygon points="35,10 45,30 25,30"/>
+                                            <polygon points="35,20 50,40 20,40"/>
+                                            <polygon points="35,30 55,50 15,50"/>
+                                            <rect x="32" y="50" width="6" height="10" fill="#8B4513"/>
+                                        </g>
+                                    </svg>
+                                </div>
+                                <span class="spot-label">竹林</span>
+                            </div>
+                            <div class="spot">
+                                <div class="spot-icon">
+                                    <svg width="70" height="70" viewBox="0 0 70 70">
+                                        <rect width="70" height="70" fill="#FFF8E1"/>
+                                        <g fill="#DAA520" stroke="#8B6914" stroke-width="2">
+                                            <rect x="15" y="20" width="40" height="35" rx="3"/>
+                                            <rect x="22" y="28" width="8" height="12" fill="#8B6914"/>
+                                            <rect x="40" y="28" width="8" height="12" fill="#8B6914"/>
+                                        </g>
+                                    </svg>
+                                </div>
+                                <span class="spot-label">天龍寺</span>
+                            </div>
+                        </div>
+                        <div class="tr-badge">🚋 嵐電で移動</div>
+                        <h4 style="margin-top: 15px; color: #555;">午後</h4>
+                        <div class="spots-row">
+                            <div class="spot">
+                                <div class="spot-icon">
+                                    <svg width="70" height="70" viewBox="0 0 70 70">
+                                        <rect width="70" height="70" fill="#FFE4E1"/>
+                                        <g fill="#DC143C" stroke="#8B0000" stroke-width="2">
+                                            <rect x="18" y="18" width="34" height="34" rx="2"/>
+                                            <rect x="25" y="25" width="20" height="20" fill="none" stroke="#8B0000" stroke-width="1.5"/>
+                                            <circle cx="35" cy="35" r="8" fill="none" stroke="#8B0000" stroke-width="1"/>
+                                        </g>
+                                    </svg>
+                                </div>
+                                <span class="spot-label">二条城</span>
+                            </div>
+                        </div>
+                        <div class="note">🏯 二条城は世界遺産で、徳川家康の京都の居城です。事前に営業時間を確認ください</div>
+                    </div>
+                </div>
+
+                <!-- 4日目 -->
+                <div class="timeline-card">
+                    <div class="timeline-day">4日目</div>
+                    <div class="card">
+                        <h3>奈良日帰り → 帰京</h3>
+                        <h4 style="color: #555;">午前</h4>
+                        <div class="tr-badge">🚇 近鉄で奈良へ（約45分）</div>
+                        <div class="spots-row">
+                            <div class="spot">
+                                <div class="spot-icon">
+                                    <svg width="70" height="70" viewBox="0 0 70 70">
+                                        <rect width="70" height="70" fill="#FFFACD"/>
+                                        <g fill="#B8860B" stroke="#8B6914" stroke-width="2">
+                                            <polygon points="35,12 55,35 50,55 20,55 15,35"/>
+                                            <rect x="32" y="38" width="6" height="12" fill="#8B6914"/>
+                                        </g>
+                                    </svg>
+                                </div>
+                                <span class="spot-label">東大寺</span>
+                            </div>
+                            <div class="spot">
+                                <div class="spot-icon">
+                                    <svg width="70" height="70" viewBox="0 0 70 70">
+                                        <rect width="70" height="70" fill="#F0FFF0"/>
+                                        <g fill="#9966CC" stroke="#663399" stroke-width="1.5">
+                                            <polygon points="35,18 48,32 45,50 25,50 22,32"/>
+                                            <circle cx="35" cy="35" r="5" fill="white" stroke="#663399" stroke-width="1"/>
+                                            <circle cx="28" cy="22" r="3" fill="#FF69B4"/>
+                                            <circle cx="42" cy="22" r="3" fill="#FF69B4"/>
+                                        </g>
+                                    </svg>
+                                </div>
+                                <span class="spot-label">春日大社</span>
+                            </div>
+                        </div>
+                        <div class="note">🦌 奈良は鹿がいることで有名です。餌（鹿せんべい）を与える時は指を曲げて与えましょう</div>
+                        <h4 style="margin-top: 15px; color: #555;">夕方</h4>
+                        <div class="tr-badge">🚇 近鉄で京都へ戻る（約45分）</div>
+                        <div class="tr-badge">🚄 新幹線で東京へ（2時間15分）</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- フッター -->
+        <div class="footer">
+            <p>🗺 京都・奈良の世界遺産を訪ねる充実の4日間</p>
+            <p style="margin-top: 10px; font-size: 0.85em;">地図データ © <a href="https://www.openstreetmap.org/" target="_blank">OpenStreetMap</a> | 制作: 旅行プラン地図スキル</p>
+        </div>
+    </div>
+
+    <script>
+        // フォールバック処理
+        window.addEventListener('load', function() {
+            if (typeof L === 'undefined') {
+                document.getElementById('offline-banner').style.display = 'block';
+                document.getElementById('map').style.display = 'none';
+                document.getElementById('map-fallback').style.display = 'block';
+                return;
+            }
+
+            // 各スポットの座標
+            const spots = [
+                { name: '東京駅', lat: 35.6810, lng: 139.7670, icon: '🚄', day: '1日目', type: 'start' },
+                { name: '京都駅', lat: 34.9756, lng: 135.7581, icon: '🎯', day: '1日目', type: 'start' },
+                { name: '金閣寺', lat: 35.0394, lng: 135.7294, icon: '⛩', day: '1日目', type: 'landmark' },
+                { name: '龍安寺', lat: 35.0395, lng: 135.7183, icon: '⛩', day: '1日目', type: 'landmark' },
+                { name: '祇園', lat: 34.9704, lng: 135.7755, icon: '🏮', day: '1日目', type: 'landmark' },
+                { name: '伏見稲荷大社', lat: 34.9674, lng: 135.7326, icon: '⛩', day: '2日目', type: 'landmark' },
+                { name: '清水寺', lat: 34.9948, lng: 135.7856, icon: '⛩', day: '2日目', type: 'landmark' },
+                { name: '三年坂', lat: 34.9955, lng: 135.7850, icon: '🏮', day: '2日目', type: 'landmark' },
+                { name: '先斗町', lat: 35.0079, lng: 135.7744, icon: '🍽', day: '2日目', type: 'food' },
+                { name: '竹林', lat: 35.0189, lng: 135.6732, icon: '🌿', day: '3日目', type: 'landmark' },
+                { name: '天龍寺', lat: 35.0155, lng: 135.6769, icon: '⛩', day: '3日目', type: 'landmark' },
+                { name: '二条城', lat: 35.0150, lng: 135.7429, icon: '🏯', day: '3日目', type: 'landmark' },
+                { name: '東大寺', lat: 34.6048, lng: 135.8468, icon: '⛩', day: '4日目', type: 'nara' },
+                { name: '春日大社', lat: 34.6870, lng: 135.8349, icon: '⛩', day: '4日目', type: 'nara' },
+            ];
+
+            // マップの初期化
+            const map = L.map('map').setView([35.0, 135.7], 8);
+
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '&copy; <a href="https://www.openstreetmap.org/">OpenStreetMap</a>',
+                maxZoom: 18
+            }).addTo(map);
+
+            // マーカーの追加
+            spots.forEach((spot, index) => {
+                const markerColor = spot.type === 'start' ? '#4CAF50' :
+                                   spot.type === 'landmark' ? '#FF9800' :
+                                   spot.type === 'food' ? '#E91E63' :
+                                   spot.type === 'nara' ? '#9C27B0' : '#2196F3';
+
+                const customIcon = L.divIcon({
+                    html: `<div style="background: ${markerColor}; color: white; width: 40px; height: 40px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 20px; border: 3px solid white; box-shadow: 0 2px 8px rgba(0,0,0,0.3);">${spot.icon}</div>`,
+                    iconSize: [40, 40],
+                    className: 'custom-marker'
+                });
+
+                L.marker([spot.lat, spot.lng], { icon: customIcon })
+                    .bindPopup(`<strong>${spot.name}</strong><br/>${spot.day}`)
+                    .addTo(map);
+            });
+
+            // ルート線の追加
+            // 東京→京都
+            const route1 = [[35.6810, 139.7670], [34.9756, 135.7581]];
+            L.polyline(route1, { color: '#FF9800', weight: 3, dashArray: '5, 5', opacity: 0.7 }).addTo(map);
+
+            // 京都市内のルート
+            const route2 = [
+                [34.9756, 135.7581],
+                [35.0394, 135.7294],
+                [35.0395, 135.7183],
+                [34.9704, 135.7755]
+            ];
+            L.polyline(route2, { color: '#FF9800', weight: 3, dashArray: '5, 5', opacity: 0.7 }).addTo(map);
+
+            // 奈良への往復
+            const route3 = [[34.9756, 135.7581], [34.6048, 135.8468], [34.6870, 135.8349]];
+            L.polyline(route3, { color: '#2196F3', weight: 3, dashArray: '5, 5', opacity: 0.7 }).addTo(map);
+
+            // 帰路
+            const route4 = [[34.9756, 135.7581], [35.6810, 139.7670]];
+            L.polyline(route4, { color: '#2196F3', weight: 3, dashArray: '10, 5', opacity: 0.7 }).addTo(map);
+
+            // マップを全体が見えるようにフィット
+            const bounds = L.latLngBounds(
+                [[34.6, 135.6], [35.7, 139.8]]
+            );
+            map.fitBounds(bounds, { padding: [50, 50] });
+        });
+    </script>
+</body>
+</html>
