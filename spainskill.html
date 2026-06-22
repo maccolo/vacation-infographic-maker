@@ -1,0 +1,726 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>カミーノ・デ・サンティアゴ - フランス人の道</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css"/>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #f5f5f5;
+            color: #333;
+        }
+
+        header {
+            background: linear-gradient(135deg, #8B4513 0%, #D2691E 50%, #CD853F 100%);
+            color: white;
+            padding: 40px 20px;
+            text-align: center;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+
+        header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+
+        header p {
+            font-size: 1.1em;
+            opacity: 0.95;
+        }
+
+        #offline-banner {
+            display: none;
+            background: #FFC107;
+            color: #333;
+            padding: 15px;
+            text-align: center;
+            font-weight: bold;
+            border-bottom: 2px solid #FF9800;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .map-section {
+            background: white;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            margin-bottom: 30px;
+        }
+
+        #map {
+            width: 100%;
+            height: 600px;
+            background: #e0e0e0;
+        }
+
+        #map-fallback {
+            display: none;
+            width: 100%;
+            height: 600px;
+            background: #f9f9f9;
+            border: 1px solid #ddd;
+        }
+
+        .legend {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            margin-bottom: 30px;
+        }
+
+        .legend h3 {
+            margin-bottom: 15px;
+            font-size: 1.2em;
+            color: #8B4513;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            margin-bottom: 10px;
+            font-size: 0.95em;
+        }
+
+        .legend-color {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            margin-right: 10px;
+            border: 1px solid #ccc;
+        }
+
+        .timeline {
+            background: white;
+            border-radius: 8px;
+            padding: 20px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+
+        .timeline h2 {
+            color: #8B4513;
+            margin-bottom: 30px;
+            font-size: 1.5em;
+        }
+
+        .timeline-day {
+            margin-bottom: 40px;
+            padding-left: 50px;
+            position: relative;
+        }
+
+        .timeline-day::before {
+            content: '';
+            position: absolute;
+            left: 0;
+            top: 30px;
+            width: 30px;
+            height: 30px;
+            background: #D2691E;
+            border: 3px solid white;
+            border-radius: 50%;
+            box-shadow: 0 0 0 2px #D2691E;
+        }
+
+        .timeline-day:not(:last-child)::after {
+            content: '';
+            position: absolute;
+            left: 14px;
+            top: 60px;
+            width: 2px;
+            height: calc(100% + 20px);
+            background: #D2691E;
+            opacity: 0.3;
+        }
+
+        .timeline-card {
+            background: #fafafa;
+            border-left: 4px solid #D2691E;
+            padding: 15px;
+            border-radius: 4px;
+        }
+
+        .timeline-card h3 {
+            color: #8B4513;
+            margin-bottom: 10px;
+            font-size: 1.1em;
+        }
+
+        .spots-row {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 10px;
+            flex-wrap: wrap;
+        }
+
+        .spot-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 5px;
+            text-align: center;
+        }
+
+        .spot-icon {
+            width: 70px;
+            height: 70px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: #f0f0f0;
+            border-radius: 8px;
+        }
+
+        .spot-label {
+            font-size: 0.85em;
+            max-width: 80px;
+            word-break: break-word;
+        }
+
+        .tr-badge {
+            display: inline-block;
+            background: #E8E8E8;
+            padding: 5px 10px;
+            border-radius: 20px;
+            font-size: 0.85em;
+            color: #666;
+            margin: 10px 0;
+            border: 1px solid #D2691E;
+        }
+
+        .tr-badge strong {
+            color: #D2691E;
+        }
+
+        .note {
+            background: #FFFACD;
+            padding: 10px;
+            border-left: 3px solid #FFD700;
+            margin-top: 10px;
+            font-size: 0.9em;
+            color: #333;
+        }
+
+        footer {
+            background: #333;
+            color: white;
+            text-align: center;
+            padding: 20px;
+            margin-top: 40px;
+            font-size: 0.9em;
+        }
+
+        .attribution {
+            margin-top: 10px;
+            font-size: 0.8em;
+            opacity: 0.8;
+        }
+
+        @media (max-width: 700px) {
+            header h1 {
+                font-size: 1.8em;
+            }
+
+            #map {
+                height: 400px;
+            }
+
+            .container {
+                padding: 10px;
+            }
+
+            .timeline-day {
+                padding-left: 40px;
+            }
+        }
+
+        .leaflet-popup-content {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        .leaflet-popup-content h4 {
+            color: #8B4513;
+            margin-bottom: 5px;
+        }
+
+        .leaflet-popup-content p {
+            font-size: 0.9em;
+            margin: 3px 0;
+        }
+    </style>
+</head>
+<body>
+    <div id="offline-banner">
+        ⚠️ ネットワークエラー：地図データが読み込めません。概念図で代わりに表示しています。
+    </div>
+
+    <header>
+        <h1>🚶 カミーノ・デ・サンティアゴ</h1>
+        <p>フランス人の道 | サン=ジャン=ピエ=ド=ポー → サンティアゴ・デ・コンポステーラ</p>
+        <p>約800km、約34日間の巡礼ルート</p>
+    </header>
+
+    <div class="container">
+        <div class="map-section">
+            <div id="map"></div>
+            <svg id="map-fallback" viewBox="0 0 800 600" style="background: #f0f0f0;">
+                <!-- 静的フォールバック概念図 -->
+                <text x="400" y="30" text-anchor="middle" font-size="20" font-weight="bold" fill="#333">
+                    カミーノ・デ・サンティアゴ フランス人の道
+                </text>
+                <line x1="100" y1="550" x2="700" y2="150" stroke="#D2691E" stroke-width="3" stroke-dasharray="5,5"/>
+
+                <!-- スポット -->
+                <circle cx="100" cy="550" r="8" fill="#FF6B6B"/>
+                <text x="100" y="570" text-anchor="middle" font-size="12" fill="#333">サン＝ジャン</text>
+
+                <circle cx="150" cy="500" r="6" fill="#FFB347"/>
+                <text x="150" y="515" text-anchor="middle" font-size="10" fill="#333">ロンセスバレス</text>
+
+                <circle cx="200" cy="420" r="6" fill="#FFB347"/>
+                <text x="200" y="435" text-anchor="middle" font-size="10" fill="#333">パンプローナ</text>
+
+                <circle cx="270" cy="330" r="6" fill="#FFB347"/>
+                <text x="270" y="345" text-anchor="middle" font-size="10" fill="#333">ログローニョ</text>
+
+                <circle cx="350" cy="250" r="6" fill="#FFB347"/>
+                <text x="350" y="265" text-anchor="middle" font-size="10" fill="#333">ブルゴス</text>
+
+                <circle cx="450" cy="200" r="6" fill="#FFB347"/>
+                <text x="450" y="215" text-anchor="middle" font-size="10" fill="#333">レオン</text>
+
+                <circle cx="580" cy="170" r="6" fill="#FFB347"/>
+                <text x="580" y="185" text-anchor="middle" font-size="10" fill="#333">サリア</text>
+
+                <circle cx="700" cy="150" r="8" fill="#6BCB77"/>
+                <text x="700" y="130" text-anchor="middle" font-size="12" fill="#333">サンティアゴ</text>
+
+                <text x="400" y="590" text-anchor="middle" font-size="11" fill="#666">
+                    ※オフラインモード：地図アプリまたはウェブブラウザで地図を見てください
+                </text>
+            </svg>
+        </div>
+
+        <div class="legend">
+            <h3>🗺️ 地図凡例</h3>
+            <div class="legend-item">
+                <div class="legend-color" style="background: #FF6B6B;"></div>
+                <span><strong>起点</strong>：サン=ジャン=ピエ=ド=ポー（フランス）</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="background: #FFB347;"></div>
+                <span><strong>主要経由地</strong>：パンプローナ、ログローニョ、ブルゴス、レオン、サリアなど</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="background: #6BCB77;"></div>
+                <span><strong>終着点</strong>：サンティアゴ・デ・コンポステーラ（スペイン）</span>
+            </div>
+            <div class="legend-item">
+                <div style="width: 20px; height: 2px; background: #D2691E; margin-right: 10px;"></div>
+                <span><strong>メインルート</strong>：破線は移動区間</span>
+            </div>
+        </div>
+
+        <div class="timeline">
+            <h2>📍 行程タイムライン（主要区間）</h2>
+
+            <div class="timeline-day">
+                <div class="timeline-card">
+                    <h3>Day 1: サン=ジャン=ピエ=ド=ポー（フランス）→ ロンセスバレス</h3>
+                    <div class="spots-row">
+                        <div class="spot-item">
+                            <div class="spot-icon">
+                                <svg width="60" height="60" viewBox="0 0 60 60">
+                                    <rect x="10" y="20" width="40" height="30" fill="#8B4513" stroke="#654321" stroke-width="2"/>
+                                    <polygon points="30,10 45,20 15,20" fill="#D2691E"/>
+                                    <rect x="15" y="25" width="8" height="8" fill="#87CEEB"/>
+                                    <rect x="27" y="25" width="8" height="8" fill="#87CEEB"/>
+                                    <rect x="39" y="25" width="8" height="8" fill="#87CEEB"/>
+                                    <rect x="15" y="37" width="8" height="8" fill="#87CEEB"/>
+                                    <rect x="27" y="37" width="8" height="8" fill="#87CEEB"/>
+                                    <rect x="39" y="37" width="8" height="8" fill="#87CEEB"/>
+                                </svg>
+                            </div>
+                            <div class="spot-label">出発地の町</div>
+                        </div>
+                        <div class="spot-item">
+                            <div class="spot-icon">
+                                <svg width="60" height="60" viewBox="0 0 60 60">
+                                    <path d="M30 5 L50 20 L45 50 L15 50 L10 20 Z" fill="#8B6914" stroke="#654321" stroke-width="2"/>
+                                    <rect x="22" y="30" width="16" height="20" fill="#D2B48C"/>
+                                </svg>
+                            </div>
+                            <div class="spot-label">ピレネー山脈の村</div>
+                        </div>
+                    </div>
+                    <div class="tr-badge">
+                        🚶 <strong>約27km</strong> | 徒歩 約7時間 | ピレネー越えの難関区間
+                    </div>
+                    <div class="note">
+                        📌 <strong>ポイント</strong>：最初の難所。早朝スタート推奨。多くの巡礼者がここで苦労します。水分補給と休息が大切。
+                    </div>
+                </div>
+            </div>
+
+            <div class="timeline-day">
+                <div class="timeline-card">
+                    <h3>Day 2-4: ロンセスバレス → パンプローナ</h3>
+                    <div class="spots-row">
+                        <div class="spot-item">
+                            <div class="spot-icon">
+                                <svg width="60" height="60" viewBox="0 0 60 60">
+                                    <path d="M30 10 C20 10 12 18 12 30 C12 42 30 55 30 55 C30 55 48 42 48 30 C48 18 40 10 30 10 Z" fill="#FF6B6B" stroke="#CC0000" stroke-width="2"/>
+                                    <circle cx="30" cy="30" r="6" fill="white"/>
+                                </svg>
+                            </div>
+                            <div class="spot-label">パンプローナ</div>
+                        </div>
+                    </div>
+                    <div class="tr-badge">
+                        🚶 <strong>約50km</strong> | 徒歩 3日間（日数による配分）
+                    </div>
+                    <div class="note">
+                        📌 <strong>ポイント</strong>：スペイン北部の都市。7月の「サン・フェルミン祭」で有名（牛追い祭り）。大聖堂や旧市街の散策が人気。
+                    </div>
+                </div>
+            </div>
+
+            <div class="timeline-day">
+                <div class="timeline-card">
+                    <h3>Day 5-8: パンプローナ → ログローニョ</h3>
+                    <div class="spots-row">
+                        <div class="spot-item">
+                            <div class="spot-icon">
+                                <svg width="60" height="60" viewBox="0 0 60 60">
+                                    <rect x="20" y="15" width="20" height="30" fill="#A0522D" stroke="#654321" stroke-width="2"/>
+                                    <polygon points="30,5 45,15 15,15" fill="#CD853F"/>
+                                    <circle cx="25" cy="25" r="4" fill="#F0E68C"/>
+                                    <circle cx="35" cy="25" r="4" fill="#F0E68C"/>
+                                    <circle cx="25" cy="35" r="4" fill="#F0E68C"/>
+                                    <circle cx="35" cy="35" r="4" fill="#F0E68C"/>
+                                </svg>
+                            </div>
+                            <div class="spot-label">ログローニョ</div>
+                        </div>
+                        <div class="spot-item">
+                            <div class="spot-icon">
+                                <svg width="60" height="60" viewBox="0 0 60 60">
+                                    <ellipse cx="30" cy="35" rx="20" ry="15" fill="#228B22" stroke="#154733" stroke-width="2"/>
+                                    <rect x="25" y="15" width="10" height="25" fill="#8B4513"/>
+                                    <circle cx="22" cy="12" r="3" fill="#90EE90"/>
+                                    <circle cx="30" cy="8" r="3" fill="#90EE90"/>
+                                    <circle cx="38" cy="12" r="3" fill="#90EE90"/>
+                                </svg>
+                            </div>
+                            <div class="spot-label">ブドウ畑地帯</div>
+                        </div>
+                    </div>
+                    <div class="tr-badge">
+                        🚶 <strong>約80km</strong> | 徒歩 4日間
+                    </div>
+                    <div class="note">
+                        📌 <strong>ポイント</strong>：ラ・リオハ地方のワイン産地。赤ワインで有名。ログローニョはスペイン北部を代表する都市。コンチューロスの彫像が有名。
+                    </div>
+                </div>
+            </div>
+
+            <div class="timeline-day">
+                <div class="timeline-card">
+                    <h3>Day 9-14: ログローニョ → ブルゴス</h3>
+                    <div class="spots-row">
+                        <div class="spot-item">
+                            <div class="spot-icon">
+                                <svg width="60" height="60" viewBox="0 0 60 60">
+                                    <polygon points="30,5 55,35 40,55 20,55 5,35" fill="#696969" stroke="#2F4F4F" stroke-width="2"/>
+                                    <polygon points="30,15 45,30 30,45 15,30" fill="#FFD700"/>
+                                    <line x1="30" y1="15" x2="30" y2="45" stroke="#2F4F4F" stroke-width="1"/>
+                                    <line x1="15" y1="30" x2="45" y2="30" stroke="#2F4F4F" stroke-width="1"/>
+                                </svg>
+                            </div>
+                            <div class="spot-label">ブルゴス</div>
+                        </div>
+                        <div class="spot-item">
+                            <div class="spot-icon">
+                                <svg width="60" height="60" viewBox="0 0 60 60">
+                                    <polygon points="30,8 48,22 48,50 12,50 12,22" fill="#8B7355" stroke="#654321" stroke-width="2"/>
+                                    <rect x="20" y="30" width="6" height="12" fill="#87CEEB"/>
+                                    <rect x="34" y="30" width="6" height="12" fill="#87CEEB"/>
+                                    <polygon points="18,18 30,10 42,18" fill="#B22222"/>
+                                </svg>
+                            </div>
+                            <div class="spot-label">中世の城塞町</div>
+                        </div>
+                    </div>
+                    <div class="tr-badge">
+                        🚶 <strong>約160km</strong> | 徒歩 6日間
+                    </div>
+                    <div class="note">
+                        📌 <strong>ポイント</strong>：ブルゴスはスペイン中部の重要都市。ゴシック様式の大聖堂（世界遺産）は必見。美しい旧市街を散策できます。
+                    </div>
+                </div>
+            </div>
+
+            <div class="timeline-day">
+                <div class="timeline-card">
+                    <h3>Day 15-21: ブルゴス → レオン</h3>
+                    <div class="spots-row">
+                        <div class="spot-item">
+                            <div class="spot-icon">
+                                <svg width="60" height="60" viewBox="0 0 60 60">
+                                    <polygon points="30,5 48,20 45,50 15,50 12,20" fill="#FF69B4" stroke="#C71585" stroke-width="2"/>
+                                    <circle cx="22" cy="35" r="5" fill="#FFD700"/>
+                                    <circle cx="38" cy="35" r="5" fill="#FFD700"/>
+                                    <path d="M25 45 Q30 48 35 45" stroke="#FFD700" stroke-width="2" fill="none"/>
+                                </svg>
+                            </div>
+                            <div class="spot-label">レオン</div>
+                        </div>
+                        <div class="spot-item">
+                            <div class="spot-icon">
+                                <svg width="60" height="60" viewBox="0 0 60 60">
+                                    <rect x="18" y="20" width="24" height="30" fill="#4169E1" stroke="#00008B" stroke-width="2"/>
+                                    <polygon points="30,10 42,20 18,20" fill="#FFD700"/>
+                                    <circle cx="24" cy="30" r="3" fill="white"/>
+                                    <circle cx="36" cy="30" r="3" fill="white"/>
+                                    <circle cx="24" cy="40" r="3" fill="white"/>
+                                    <circle cx="36" cy="40" r="3" fill="white"/>
+                                </svg>
+                            </div>
+                            <div class="spot-label">大聖堂の町</div>
+                        </div>
+                    </div>
+                    <div class="tr-badge">
+                        🚶 <strong>約180km</strong> | 徒歩 7日間
+                    </div>
+                    <div class="note">
+                        📌 <strong>ポイント</strong>：レオンはカスティーリャ・イ・レオン州の主都。ステンドグラスで有名なゴシック大聖堂（世界遺産）が素晴らしい。多くの巡礼者が立ち寄ります。
+                    </div>
+                </div>
+            </div>
+
+            <div class="timeline-day">
+                <div class="timeline-card">
+                    <h3>Day 22-32: レオン → サリア</h3>
+                    <div class="spots-row">
+                        <div class="spot-item">
+                            <div class="spot-icon">
+                                <svg width="60" height="60" viewBox="0 0 60 60">
+                                    <ellipse cx="30" cy="32" rx="18" ry="20" fill="#90EE90" stroke="#228B22" stroke-width="2"/>
+                                    <rect x="27" y="15" width="6" height="20" fill="#8B4513"/>
+                                    <circle cx="25" cy="10" r="4" fill="#90EE90"/>
+                                    <circle cx="35" cy="12" r="4" fill="#90EE90"/>
+                                </svg>
+                            </div>
+                            <div class="spot-label">古い十字架の丘</div>
+                        </div>
+                        <div class="spot-item">
+                            <div class="spot-icon">
+                                <svg width="60" height="60" viewBox="0 0 60 60">
+                                    <polygon points="30,8 55,45 5,45" fill="#DAA520" stroke="#B8860B" stroke-width="2"/>
+                                    <rect x="25" y="35" width="10" height="15" fill="#8B4513"/>
+                                    <rect x="28" y="40" width="3" height="6" fill="#87CEEB"/>
+                                    <rect x="33" y="40" width="3" height="6" fill="#87CEEB"/>
+                                </svg>
+                            </div>
+                            <div class="spot-label">村ぐらしの地</div>
+                        </div>
+                    </div>
+                    <div class="tr-badge">
+                        🚶 <strong>約250km</strong> | 徒歩 11日間
+                    </div>
+                    <div class="note">
+                        📌 <strong>ポイント</strong>：この区間は平坦で比較的歩きやすい。多くの巡礼者がサリアから最後の100kmを歩みます（100km完歩で聖地到着証明書が得られる）。
+                    </div>
+                </div>
+            </div>
+
+            <div class="timeline-day">
+                <div class="timeline-card">
+                    <h3>Day 33-34: サリア → サンティアゴ・デ・コンポステーラ</h3>
+                    <div class="spots-row">
+                        <div class="spot-item">
+                            <div class="spot-icon">
+                                <svg width="60" height="60" viewBox="0 0 60 60">
+                                    <polygon points="30,5 50,25 50,55 10,55 10,25" fill="#DAA520" stroke="#B8860B" stroke-width="2"/>
+                                    <polygon points="30,5 38,15 22,15" fill="#DC143C"/>
+                                    <rect x="22" y="30" width="6" height="12" fill="#87CEEB"/>
+                                    <rect x="32" y="30" width="6" height="12" fill="#87CEEB"/>
+                                </svg>
+                            </div>
+                            <div class="spot-label">最終地点</div>
+                        </div>
+                        <div class="spot-item">
+                            <div class="spot-icon">
+                                <svg width="60" height="60" viewBox="0 0 60 60">
+                                    <path d="M30 8 L55 35 L50 55 L10 55 L5 35 Z" fill="#FFD700" stroke="#DAA520" stroke-width="2"/>
+                                    <polygon points="30,15 40,28 20,28" fill="#C41E3A"/>
+                                    <circle cx="30" cy="42" r="4" fill="#C41E3A"/>
+                                    <path d="M25 45 Q30 48 35 45" stroke="#C41E3A" stroke-width="2" fill="none"/>
+                                </svg>
+                            </div>
+                            <div class="spot-label">聖地到着</div>
+                        </div>
+                    </div>
+                    <div class="tr-badge">
+                        🚶 <strong>約100km</strong> | 徒歩 2日間
+                    </div>
+                    <div class="note">
+                        📌 <strong>ポイント</strong>：最後の100km区間。サンティアゴ・デ・コンポステーラの大聖堂到着時に「compostela」（巡礼証明書）を受け取ります。聖者ヤコブ伝説の聖地です。
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <footer>
+        <h3>カミーノ・デ・サンティアゴ - フランス人の道</h3>
+        <p>総距離：約800km | 推奨期間：34日間 | 難易度：中～高</p>
+        <p style="margin-top: 15px; font-size: 0.85em; line-height: 1.6;">
+            フランス人の道（Camino Francés）は、ヨーロッパ最大の巡礼路。中世から続く信仰の道を歩み、スペイン北部の自然、文化、歴史を体験できます。
+        </p>
+        <div class="attribution">
+            マップデータ © OpenStreetMap contributors | カミーノ・デ・サンティアゴ インタラクティブ地図ガイド
+        </div>
+    </footer>
+
+    <script>
+        // Leaflet地図の初期化
+        let map;
+        const mapCenter = [42.0, -3.5]; // スペイン北部のセンター
+        const mapZoom = 6;
+
+        // スポットデータ（緯度、経度、名前、説明）
+        const spots = [
+            { lat: 43.0047, lng: -1.3833, name: 'サン=ジャン=ピエ=ド=ポー', emoji: '🏰', desc: 'フランス側の起点。城塞に囲まれた町。' },
+            { lat: 43.0500, lng: -1.0500, name: 'ロンセスバレス', emoji: '⛩️', desc: 'ピレネー山脈の麓の村。最初の宿泊地。' },
+            { lat: 42.8062, lng: -1.6447, name: 'パンプローナ', emoji: '🎉', desc: 'スペイン北部の都市。サン・フェルミン祭で有名。' },
+            { lat: 42.4627, lng: -2.4449, name: 'ログローニョ', emoji: '🍷', desc: 'ラ・リオハ州のワイン産地。グルメな町。' },
+            { lat: 42.3604, lng: -3.7064, name: 'ブルゴス', emoji: '⛩️', desc: 'ゴシック大聖堂が有名。中世の雰囲気が残る。' },
+            { lat: 42.5987, lng: -5.5711, name: 'レオン', emoji: '🏛️', desc: 'ステンドグラスが美しい大聖堂。重要な巡礼地。' },
+            { lat: 42.7671, lng: -7.5898, name: 'サリア', emoji: '🚶', desc: '100km地点。多くの巡礼者がここから開始。' },
+            { lat: 42.8805, lng: -8.5450, name: 'サンティアゴ・デ・コンポステーラ', emoji: '⭐', desc: '最終目的地。使徒ヤコブゆかりの聖地。' }
+        ];
+
+        // ルート座標（メインパス）
+        const routeCoordinates = [
+            [43.0047, -1.3833],
+            [43.0500, -1.0500],
+            [42.8062, -1.6447],
+            [42.4627, -2.4449],
+            [42.3604, -3.7064],
+            [42.5987, -5.5711],
+            [42.7671, -7.5898],
+            [42.8805, -8.5450]
+        ];
+
+        window.addEventListener('load', function() {
+            // Leafletが読み込まれているか確認
+            if (typeof L === 'undefined') {
+                // オフラインモード
+                document.getElementById('offline-banner').style.display = 'block';
+                document.getElementById('map').style.display = 'none';
+                document.getElementById('map-fallback').style.display = 'block';
+            } else {
+                // オンラインモード - Leaflet地図を初期化
+                map = L.map('map').setView(mapCenter, mapZoom);
+
+                L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                    attribution: '© OpenStreetMap contributors',
+                    maxZoom: 19
+                }).addTo(map);
+
+                // ルート線を描画
+                L.polyline(routeCoordinates, {
+                    color: '#D2691E',
+                    weight: 3,
+                    opacity: 0.7,
+                    dashArray: '5, 5'
+                }).addTo(map);
+
+                // マーカーを追加
+                spots.forEach((spot, index) => {
+                    const isStart = index === 0;
+                    const isEnd = index === spots.length - 1;
+
+                    // アイコンの背景色を決定
+                    let bgColor = '#FFB347'; // デフォルト
+                    if (isStart) bgColor = '#FF6B6B';
+                    if (isEnd) bgColor = '#6BCB77';
+
+                    // カスタムアイコンを作成
+                    const customIcon = L.divIcon({
+                        html: `<div style="
+                            background: ${bgColor};
+                            color: white;
+                            border-radius: 50%;
+                            width: 40px;
+                            height: 40px;
+                            display: flex;
+                            align-items: center;
+                            justify-content: center;
+                            border: 3px solid white;
+                            box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+                            font-size: 20px;
+                        ">${spot.emoji}</div>`,
+                        iconSize: [40, 40],
+                        className: 'custom-marker'
+                    });
+
+                    // マーカーを追加
+                    const marker = L.marker([spot.lat, spot.lng], { icon: customIcon }).addTo(map);
+
+                    // ポップアップを追加
+                    marker.bindPopup(`
+                        <div style="max-width: 200px;">
+                            <h4>${spot.name}</h4>
+                            <p>${spot.desc}</p>
+                            <p style="margin-top: 8px; font-size: 0.8em; color: #666;">
+                                📍 ${spot.lat.toFixed(4)}°, ${spot.lng.toFixed(4)}°
+                            </p>
+                        </div>
+                    `);
+                });
+
+                // 移動ラベルを追加
+                for (let i = 0; i < spots.length - 1; i++) {
+                    const from = spots[i];
+                    const to = spots[i + 1];
+                    const midLat = (from.lat + to.lat) / 2;
+                    const midLng = (from.lng + to.lng) / 2;
+
+                    // 距離の簡略計算（実際のルート距離とは異なる）
+                    const distances = [27, 50, 80, 160, 180, 250, 100];
+
+                    L.divIcon({
+                        html: `<div style="
+                            background: rgba(255, 255, 255, 0.9);
+                            padding: 4px 8px;
+                            border-radius: 4px;
+                            font-size: 11px;
+                            color: #D2691E;
+                            border: 1px solid #D2691E;
+                            font-weight: bold;
+                        ">${distances[i]}km</div>`,
+                        className: 'distance-label'
+                    });
+                }
+            }
+        });
+    </script>
+</body>
+</html>
