@@ -1,0 +1,337 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>京都3泊4日旅行プラン地図</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Arial', 'Hiragino Sans', sans-serif;
+            background-color: #f5f5f5;
+        }
+
+        .container {
+            display: flex;
+            height: 100vh;
+        }
+
+        #map {
+            flex: 1;
+            height: 100%;
+        }
+
+        .sidebar {
+            width: 350px;
+            background-color: #fff;
+            overflow-y: auto;
+            box-shadow: -2px 0 5px rgba(0,0,0,0.1);
+            padding: 20px;
+        }
+
+        .sidebar h1 {
+            font-size: 20px;
+            margin-bottom: 15px;
+            color: #333;
+            border-bottom: 3px solid #e74c3c;
+            padding-bottom: 10px;
+        }
+
+        .day-section {
+            margin-bottom: 25px;
+            padding: 15px;
+            background-color: #f9f9f9;
+            border-left: 4px solid #e74c3c;
+            border-radius: 4px;
+        }
+
+        .day-section h2 {
+            font-size: 16px;
+            color: #e74c3c;
+            margin-bottom: 10px;
+        }
+
+        .location-item {
+            font-size: 13px;
+            margin: 8px 0;
+            padding: 8px 0;
+            color: #555;
+            border-bottom: 1px solid #eee;
+        }
+
+        .location-item:last-child {
+            border-bottom: none;
+        }
+
+        .location-item strong {
+            color: #333;
+        }
+
+        .time-info {
+            font-size: 12px;
+            color: #999;
+            margin-top: 3px;
+        }
+
+        .legend {
+            background-color: #f0f0f0;
+            padding: 15px;
+            border-radius: 4px;
+            margin-top: 20px;
+            font-size: 12px;
+        }
+
+        .legend-item {
+            margin: 8px 0;
+            display: flex;
+            align-items: center;
+        }
+
+        .legend-color {
+            width: 15px;
+            height: 15px;
+            border-radius: 50%;
+            margin-right: 8px;
+        }
+
+        .day1 { background-color: #e74c3c; }
+        .day2 { background-color: #3498db; }
+        .day3 { background-color: #f39c12; }
+        .day4 { background-color: #27ae60; }
+
+        @media (max-width: 768px) {
+            .container {
+                flex-direction: column;
+            }
+
+            .sidebar {
+                width: 100%;
+                height: auto;
+                max-height: 40vh;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div id="map"></div>
+        <div class="sidebar">
+            <h1>京都3泊4日旅行プラン</h1>
+
+            <div class="day-section">
+                <h2>1日目（初日）</h2>
+                <div class="location-item">
+                    <strong>東京駅</strong> → 京都駅
+                    <div class="time-info">新幹線で2時間15分</div>
+                </div>
+                <div class="location-item">
+                    <strong>金閣寺</strong>
+                    <div class="time-info">午後：参拝</div>
+                </div>
+                <div class="location-item">
+                    <strong>龍安寺</strong>
+                    <div class="time-info">午後：参拝</div>
+                </div>
+                <div class="location-item">
+                    <strong>祇園</strong>
+                    <div class="time-info">夜：散策</div>
+                </div>
+            </div>
+
+            <div class="day-section">
+                <h2>2日目</h2>
+                <div class="location-item">
+                    <strong>伏見稲荷大社</strong>
+                    <div class="time-info">午前：参拝</div>
+                </div>
+                <div class="location-item">
+                    <strong>清水寺</strong>
+                    <div class="time-info">午後：参拝</div>
+                </div>
+                <div class="location-item">
+                    <strong>三年坂</strong>
+                    <div class="time-info">午後：散策</div>
+                </div>
+                <div class="location-item">
+                    <strong>先斗町</strong>
+                    <div class="time-info">夜：夕食</div>
+                </div>
+            </div>
+
+            <div class="day-section">
+                <h2>3日目</h2>
+                <div class="location-item">
+                    <strong>嵐山</strong>
+                    <div class="time-info">午前：天龍寺、竹林</div>
+                </div>
+                <div class="location-item">
+                    <strong>二条城</strong>
+                    <div class="time-info">午後：参拝</div>
+                </div>
+            </div>
+
+            <div class="day-section">
+                <h2>4日目（最終日）</h2>
+                <div class="location-item">
+                    <strong>奈良</strong>
+                    <div class="time-info">午前：日帰り</div>
+                </div>
+                <div class="location-item">
+                    <strong>東大寺</strong>
+                    <div class="time-info">奈良内：参拝</div>
+                </div>
+                <div class="location-item">
+                    <strong>春日大社</strong>
+                    <div class="time-info">奈良内：参拝</div>
+                </div>
+                <div class="location-item">
+                    <strong>京都駅</strong> → 東京駅
+                    <div class="time-info">夕方：帰京</div>
+                </div>
+            </div>
+
+            <div class="legend">
+                <div style="font-weight: bold; margin-bottom: 10px;">凡例</div>
+                <div class="legend-item">
+                    <div class="legend-color day1"></div>
+                    <span>1日目</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color day2"></div>
+                    <span>2日目</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color day3"></div>
+                    <span>3日目</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color day4"></div>
+                    <span>4日目</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 地図の初期化（京都中心）
+        const map = L.map('map').setView([35.0116, 135.7681], 12);
+
+        // タイルレイヤーの追加
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+            maxZoom: 19
+        }).addTo(map);
+
+        // 場所のデータ（緯度、経度、名前、日）
+        const locations = [
+            // 1日目
+            { name: '金閣寺', lat: 35.0393, lng: 135.7291, day: 1, type: '参拝' },
+            { name: '龍安寺', lat: 35.0352, lng: 135.7226, day: 1, type: '参拝' },
+            { name: '祇園', lat: 35.0052, lng: 135.7781, day: 1, type: '散策' },
+
+            // 2日目
+            { name: '伏見稲荷大社', lat: 34.9668, lng: 135.7330, day: 2, type: '参拝' },
+            { name: '清水寺', lat: 34.9947, lng: 135.7858, day: 2, type: '参拝' },
+            { name: '三年坂', lat: 34.9960, lng: 135.7873, day: 2, type: '散策' },
+            { name: '先斗町', lat: 35.0065, lng: 135.7725, day: 2, type: '食事' },
+
+            // 3日目
+            { name: '天龍寺', lat: 35.0168, lng: 135.6880, day: 3, type: '参拝' },
+            { name: '嵐山竹林', lat: 35.0178, lng: 135.6793, day: 3, type: '散策' },
+            { name: '二条城', lat: 35.0143, lng: 135.7481, day: 3, type: '参拝' },
+
+            // 4日目
+            { name: '東大寺', lat: 34.6950, lng: 135.8355, day: 4, type: '参拝' },
+            { name: '春日大社', lat: 34.6889, lng: 135.8346, day: 4, type: '参拝' },
+
+            // 主要駅
+            { name: '京都駅', lat: 34.9760, lng: 135.7570, day: 0, type: '駅' }
+        ];
+
+        // マーカーの色設定
+        const dayColors = {
+            0: '#95a5a6',  // グレー（駅）
+            1: '#e74c3c',  // 赤
+            2: '#3498db',  // 青
+            3: '#f39c12',  // オレンジ
+            4: '#27ae60'   // 緑
+        };
+
+        // マーカーの追加
+        locations.forEach(location => {
+            const color = dayColors[location.day];
+
+            // カスタムマーカーアイコンの作成
+            const customIcon = L.divIcon({
+                className: 'custom-marker',
+                html: `<div style="background-color: ${color}; width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-weight: bold; border: 3px solid white; box-shadow: 0 2px 4px rgba(0,0,0,0.3);">${location.day || '駅'}</div>`,
+                iconSize: [32, 32],
+                iconAnchor: [16, 16],
+                popupAnchor: [0, -16]
+            });
+
+            const marker = L.marker([location.lat, location.lng], { icon: customIcon })
+                .bindPopup(`<strong>${location.name}</strong><br>${location.type}`)
+                .addTo(map);
+        });
+
+        // 各日付のルート線の描画
+        const routes = [
+            // 1日目：金閣寺 → 龍安寺 → 祇園
+            [
+                { lat: 35.0393, lng: 135.7291 },
+                { lat: 35.0352, lng: 135.7226 },
+                { lat: 35.0052, lng: 135.7781 }
+            ],
+            // 2日目：伏見稲荷 → 清水寺 → 三年坂 → 先斗町
+            [
+                { lat: 34.9668, lng: 135.7330 },
+                { lat: 34.9947, lng: 135.7858 },
+                { lat: 34.9960, lng: 135.7873 },
+                { lat: 35.0065, lng: 135.7725 }
+            ],
+            // 3日目：嵐山 → 二条城
+            [
+                { lat: 35.0178, lng: 135.6880 },
+                { lat: 35.0143, lng: 135.7481 }
+            ],
+            // 4日目：奈良（東大寺 → 春日大社）→ 京都
+            [
+                { lat: 34.6950, lng: 135.8355 },
+                { lat: 34.6889, lng: 135.8346 }
+            ]
+        ];
+
+        const routeColors = ['#e74c3c', '#3498db', '#f39c12', '#27ae60'];
+
+        routes.forEach((route, index) => {
+            L.polyline(route, {
+                color: routeColors[index],
+                weight: 3,
+                opacity: 0.7,
+                dashArray: '5, 5'
+            }).addTo(map);
+        });
+
+        // 京都駅のハイライト
+        const kyotoIcon = L.divIcon({
+            className: 'custom-marker',
+            html: `<div style="background-color: #95a5a6; width: 40px; height: 40px; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-weight: bold; border: 3px solid white; box-shadow: 0 2px 8px rgba(0,0,0,0.5); font-size: 20px;">🚉</div>`,
+            iconSize: [40, 40],
+            iconAnchor: [20, 20],
+            popupAnchor: [0, -20]
+        });
+
+        L.marker([34.9760, 135.7570], { icon: kyotoIcon })
+            .bindPopup('<strong>京都駅</strong><br>出発地・帰路地点')
+            .addTo(map);
+    </script>
+</body>
+</html>
