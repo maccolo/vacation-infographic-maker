@@ -1,0 +1,888 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>北海道ドライブ旅行 4泊5日マップ</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css"/>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', 'Hiragino Sans', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+            overflow: hidden;
+        }
+
+        header {
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+            color: white;
+            padding: 40px 30px;
+            text-align: center;
+        }
+
+        header h1 {
+            font-size: 32px;
+            margin-bottom: 10px;
+            font-weight: 700;
+        }
+
+        header p {
+            font-size: 16px;
+            opacity: 0.95;
+        }
+
+        #offline-banner {
+            display: none;
+            background: #fff3cd;
+            color: #856404;
+            padding: 15px;
+            margin: 15px;
+            border-radius: 6px;
+            border-left: 4px solid #ffc107;
+        }
+
+        .map-container {
+            position: relative;
+            display: flex;
+            gap: 20px;
+            padding: 30px;
+        }
+
+        #map {
+            width: 55%;
+            height: 500px;
+            border-radius: 8px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+        }
+
+        #map-fallback {
+            display: none;
+            width: 55%;
+            height: 500px;
+            background: #f0f0f0;
+            border: 2px dashed #999;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #666;
+            font-size: 14px;
+            text-align: center;
+            padding: 20px;
+        }
+
+        .legend {
+            flex: 1;
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 8px;
+            border: 1px solid #e0e0e0;
+        }
+
+        .legend h3 {
+            font-size: 16px;
+            margin-bottom: 15px;
+            color: #1e3c72;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            margin-bottom: 10px;
+            font-size: 14px;
+        }
+
+        .legend-item-color {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            margin-right: 10px;
+            border: 2px solid rgba(0, 0, 0, 0.2);
+        }
+
+        .legend-item.start .legend-item-color {
+            background: #2ecc71;
+        }
+
+        .legend-item.end .legend-item-color {
+            background: #e74c3c;
+        }
+
+        .legend-item.stay .legend-item-color {
+            background: #3498db;
+        }
+
+        .legend-item.spot .legend-item-color {
+            background: #f39c12;
+        }
+
+        .legend-item.transport {
+            display: flex;
+            align-items: center;
+            margin-bottom: 8px;
+            font-size: 13px;
+        }
+
+        .legend-line {
+            width: 30px;
+            height: 3px;
+            background: #2c3e50;
+            margin-right: 10px;
+        }
+
+        .timeline-section {
+            padding: 30px;
+            background: #f8f9fa;
+        }
+
+        .timeline-section h2 {
+            color: #1e3c72;
+            margin-bottom: 30px;
+            font-size: 24px;
+        }
+
+        .timeline {
+            position: relative;
+            padding-left: 40px;
+        }
+
+        .timeline::before {
+            content: '';
+            position: absolute;
+            left: 12px;
+            top: 0;
+            bottom: 0;
+            width: 3px;
+            background: #3498db;
+        }
+
+        .day-card {
+            position: relative;
+            margin-bottom: 30px;
+            background: white;
+            border-radius: 8px;
+            padding: 20px;
+            border-left: 4px solid #3498db;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        .day-badge {
+            position: absolute;
+            left: -32px;
+            top: 0;
+            width: 32px;
+            height: 32px;
+            background: #2a5298;
+            color: white;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 14px;
+            border: 3px solid white;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+        }
+
+        .day-card h3 {
+            color: #1e3c72;
+            margin-bottom: 15px;
+            font-size: 18px;
+        }
+
+        .spots-row {
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+            margin-bottom: 15px;
+        }
+
+        .spot-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .spot-svg {
+            width: 70px;
+            height: 70px;
+            background: #f0f0f0;
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: 2px solid #e0e0e0;
+        }
+
+        .spot-label {
+            font-size: 12px;
+            text-align: center;
+            max-width: 70px;
+            color: #333;
+            font-weight: 500;
+        }
+
+        .tr-badge {
+            display: inline-block;
+            background: #2c3e50;
+            color: white;
+            padding: 6px 12px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: 500;
+            margin: 8px 0;
+        }
+
+        .note {
+            background: #fffacd;
+            border-left: 3px solid #f39c12;
+            padding: 12px;
+            margin-top: 15px;
+            border-radius: 4px;
+            font-size: 13px;
+            color: #333;
+        }
+
+        footer {
+            background: #2c3e50;
+            color: white;
+            padding: 25px;
+            text-align: center;
+            font-size: 13px;
+        }
+
+        footer p {
+            margin-bottom: 8px;
+        }
+
+        .leaflet-popup-content {
+            font-size: 13px;
+        }
+
+        @media (max-width: 900px) {
+            .map-container {
+                flex-direction: column;
+            }
+
+            #map, #map-fallback {
+                width: 100%;
+            }
+
+            header h1 {
+                font-size: 24px;
+            }
+
+            .timeline {
+                padding-left: 35px;
+            }
+
+            .day-badge {
+                width: 28px;
+                height: 28px;
+                font-size: 12px;
+                left: -28px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>北海道ドライブ旅行</h1>
+            <p>4泊5日の大冒険: 新千歳空港 → ニセコ → 新千歳空港</p>
+        </header>
+
+        <div id="offline-banner">
+            ⚠️ オフラインモードで表示中です。インタラクティブ地図はオンライン環境で利用できます。
+        </div>
+
+        <div class="map-container">
+            <div id="map"></div>
+            <svg id="map-fallback" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400">
+                <rect width="400" height="400" fill="#f5f5f5"/>
+                <text x="200" y="180" text-anchor="middle" font-size="16" fill="#666">
+                    北海道ドライブルート
+                </text>
+                <text x="200" y="210" text-anchor="middle" font-size="12" fill="#999">
+                    (オフラインフォールバック表示)
+                </text>
+                <text x="200" y="240" text-anchor="middle" font-size="11" fill="#999">
+                    オンライン環境でご覧ください
+                </text>
+            </svg>
+
+            <div class="legend">
+                <h3>地図凡例</h3>
+                <div class="legend-item start">
+                    <div class="legend-item-color"></div>
+                    <span>出発地・到着地</span>
+                </div>
+                <div class="legend-item stay">
+                    <div class="legend-item-color"></div>
+                    <span>宿泊地</span>
+                </div>
+                <div class="legend-item spot">
+                    <div class="legend-item-color"></div>
+                    <span>立ち寄りスポット</span>
+                </div>
+                <div style="margin-top: 15px; padding-top: 15px; border-top: 1px solid #ddd;">
+                    <div class="legend-item transport">
+                        <div class="legend-line"></div>
+                        <span>旅程ルート</span>
+                    </div>
+                </div>
+                <div style="margin-top: 15px; font-size: 12px; color: #666; line-height: 1.6;">
+                    <p>ピンをクリックすると詳細が表示されます。</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="timeline-section">
+            <h2>📅 日別タイムライン</h2>
+            <div class="timeline">
+                <div class="day-card">
+                    <div class="day-badge">1</div>
+                    <h3>1日目: 新千歳空港 → 支笏湖 → 洞爺湖</h3>
+                    <div class="spots-row">
+                        <div class="spot-item">
+                            <div class="spot-svg">
+                                <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+                                    <circle cx="50" cy="40" r="25" fill="#e74c3c"/>
+                                    <polygon points="30,60 50,80 70,60" fill="#c0392b"/>
+                                    <rect x="45" y="35" width="10" height="15" fill="#34495e"/>
+                                </svg>
+                            </div>
+                            <span class="spot-label">新千歳空港</span>
+                        </div>
+                        <div style="align-self: center; color: #7f8c8d;">→</div>
+                        <div class="spot-item">
+                            <div class="spot-svg">
+                                <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+                                    <ellipse cx="50" cy="50" rx="40" ry="35" fill="#3498db"/>
+                                    <path d="M 30 50 Q 50 40 70 50" fill="none" stroke="#2980b9" stroke-width="3"/>
+                                    <circle cx="50" cy="50" r="3" fill="#fff"/>
+                                </svg>
+                            </div>
+                            <span class="spot-label">支笏湖</span>
+                        </div>
+                        <div style="align-self: center; color: #7f8c8d;">→</div>
+                        <div class="spot-item">
+                            <div class="spot-svg">
+                                <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+                                    <ellipse cx="50" cy="55" rx="35" ry="30" fill="#16a085"/>
+                                    <path d="M 35 55 Q 50 45 65 55" fill="none" stroke="#117a65" stroke-width="2"/>
+                                    <rect x="45" y="20" width="10" height="25" fill="#e74c3c"/>
+                                </svg>
+                            </div>
+                            <span class="spot-label">洞爺湖（宿泊）</span>
+                        </div>
+                    </div>
+                    <div class="tr-badge">🚗 新千歳 → 支笏湖: 約1時間20分</div>
+                    <div class="tr-badge">🚗 支笏湖 → 洞爺湖: 約1時間30分</div>
+                    <div class="note">
+                        💡 支笏湖で湖畔ランチを楽しみましょう。洞爺湖での宿泊は温泉旅館がおすすめです。
+                    </div>
+                </div>
+
+                <div class="day-card">
+                    <div class="day-badge">2</div>
+                    <h3>2日目: 洞爺湖 → 昭和新山・有珠山 → 登別温泉</h3>
+                    <div class="spots-row">
+                        <div class="spot-item">
+                            <div class="spot-svg">
+                                <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+                                    <ellipse cx="50" cy="55" rx="35" ry="30" fill="#16a085"/>
+                                    <path d="M 35 55 Q 50 45 65 55" fill="none" stroke="#117a65" stroke-width="2"/>
+                                </svg>
+                            </div>
+                            <span class="spot-label">洞爺湖</span>
+                        </div>
+                        <div style="align-self: center; color: #7f8c8d;">→</div>
+                        <div class="spot-item">
+                            <div class="spot-svg">
+                                <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+                                    <polygon points="50,20 30,70 70,70" fill="#c0392b"/>
+                                    <polygon points="50,30 35,65 65,65" fill="#e74c3c"/>
+                                    <circle cx="50" cy="55" r="4" fill="#fff"/>
+                                </svg>
+                            </div>
+                            <span class="spot-label">昭和新山</span>
+                        </div>
+                        <div style="align-self: center; color: #7f8c8d;">→</div>
+                        <div class="spot-item">
+                            <div class="spot-svg">
+                                <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+                                    <rect x="30" y="35" width="40" height="40" fill="#e67e22" rx="4"/>
+                                    <circle cx="40" cy="45" r="3" fill="#fff"/>
+                                    <circle cx="60" cy="45" r="3" fill="#fff"/>
+                                    <circle cx="40" cy="65" r="3" fill="#fff"/>
+                                    <circle cx="60" cy="65" r="3" fill="#fff"/>
+                                    <polygon points="45,30 55,30 60,20 40,20" fill="#c0392b"/>
+                                </svg>
+                            </div>
+                            <span class="spot-label">登別温泉（宿泊）</span>
+                        </div>
+                    </div>
+                    <div class="tr-badge">🚗 洞爺湖 → 昭和新山: 約20分</div>
+                    <div class="tr-badge">🚗 昭和新山 → 登別温泉: 約50分</div>
+                    <div class="note">
+                        💡 有珠山のロープウェイは絶景ポイント。登別温泉の地獄谷も必見です。
+                    </div>
+                </div>
+
+                <div class="day-card">
+                    <div class="day-badge">3</div>
+                    <h3>3日目: 登別温泉 → 函館 → 函館山（夜景）</h3>
+                    <div class="spots-row">
+                        <div class="spot-item">
+                            <div class="spot-svg">
+                                <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+                                    <rect x="30" y="35" width="40" height="40" fill="#e67e22" rx="4"/>
+                                    <circle cx="40" cy="45" r="3" fill="#fff"/>
+                                    <circle cx="60" cy="45" r="3" fill="#fff"/>
+                                </svg>
+                            </div>
+                            <span class="spot-label">登別温泉</span>
+                        </div>
+                        <div style="align-self: center; color: #7f8c8d;">→</div>
+                        <div class="spot-item">
+                            <div class="spot-svg">
+                                <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+                                    <rect x="25" y="30" width="50" height="45" fill="#2980b9" rx="3"/>
+                                    <polygon points="35,50 50,40 65,50" fill="#e74c3c"/>
+                                    <circle cx="40" cy="62" r="2" fill="#fff"/>
+                                    <circle cx="50" cy="62" r="2" fill="#fff"/>
+                                    <circle cx="60" cy="62" r="2" fill="#fff"/>
+                                </svg>
+                            </div>
+                            <span class="spot-label">函館</span>
+                        </div>
+                        <div style="align-self: center; color: #7f8c8d;">→</div>
+                        <div class="spot-item">
+                            <div class="spot-svg">
+                                <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+                                    <polygon points="50,25 35,45 65,45" fill="#34495e"/>
+                                    <circle cx="50" cy="55" r="8" fill="#f39c12"/>
+                                    <circle cx="50" cy="55" r="4" fill="#fff"/>
+                                    <path d="M 50 63 Q 40 75 50 80 Q 60 75 50 63" fill="#16a085" opacity="0.6"/>
+                                </svg>
+                            </div>
+                            <span class="spot-label">函館山（宿泊）</span>
+                        </div>
+                    </div>
+                    <div class="tr-badge">🚗 登別 → 函館: 約2時間30分（高速）</div>
+                    <div class="note">
+                        💡 函館山からの夜景は日本三大夜景の一つ。夕方に山頂に到着して、夜景を楽しみましょう。
+                    </div>
+                </div>
+
+                <div class="day-card">
+                    <div class="day-badge">4</div>
+                    <h3>4日目: 函館朝市 → 大沼公園 → 長万部 → ニセコ</h3>
+                    <div class="spots-row">
+                        <div class="spot-item">
+                            <div class="spot-svg">
+                                <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+                                    <rect x="20" y="30" width="60" height="50" fill="#e67e22" rx="3"/>
+                                    <line x1="35" y1="30" x2="35" y2="80" stroke="#c0392b" stroke-width="2"/>
+                                    <line x1="50" y1="30" x2="50" y2="80" stroke="#c0392b" stroke-width="2"/>
+                                    <line x1="65" y1="30" x2="65" y2="80" stroke="#c0392b" stroke-width="2"/>
+                                    <circle cx="35" cy="55" r="3" fill="#fff"/>
+                                    <circle cx="50" cy="55" r="3" fill="#fff"/>
+                                    <circle cx="65" cy="55" r="3" fill="#fff"/>
+                                </svg>
+                            </div>
+                            <span class="spot-label">函館朝市</span>
+                        </div>
+                        <div style="align-self: center; color: #7f8c8d;">→</div>
+                        <div class="spot-item">
+                            <div class="spot-svg">
+                                <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+                                    <ellipse cx="50" cy="50" rx="38" ry="32" fill="#27ae60"/>
+                                    <circle cx="35" cy="40" r="5" fill="#229954"/>
+                                    <circle cx="65" cy="45" r="5" fill="#229954"/>
+                                    <circle cx="50" cy="60" r="5" fill="#229954"/>
+                                </svg>
+                            </div>
+                            <span class="spot-label">大沼公園</span>
+                        </div>
+                        <div style="align-self: center; color: #7f8c8d;">→</div>
+                        <div class="spot-item">
+                            <div class="spot-svg">
+                                <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+                                    <rect x="30" y="40" width="40" height="35" fill="#95a5a6" rx="2"/>
+                                    <rect x="35" y="45" width="8" height="8" fill="#34495e"/>
+                                    <rect x="48" y="45" width="8" height="8" fill="#34495e"/>
+                                    <rect x="61" y="45" width="8" height="8" fill="#34495e"/>
+                                    <polygon points="50,20 40,40 60,40" fill="#c0392b"/>
+                                </svg>
+                            </div>
+                            <span class="spot-label">長万部</span>
+                        </div>
+                        <div style="align-self: center; color: #7f8c8d;">→</div>
+                        <div class="spot-item">
+                            <div class="spot-svg">
+                                <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+                                    <polygon points="50,20 30,50 40,65 60,65 70,50" fill="#f39c12"/>
+                                    <polygon points="50,28 35,50 42,62 58,62 65,50" fill="#e67e22"/>
+                                    <circle cx="50" cy="40" r="4" fill="#fff"/>
+                                </svg>
+                            </div>
+                            <span class="spot-label">ニセコ（宿泊）</span>
+                        </div>
+                    </div>
+                    <div class="tr-badge">🚗 函館 → 大沼公園: 約50分</div>
+                    <div class="tr-badge">🚗 大沼公園 → 長万部: 約30分</div>
+                    <div class="tr-badge">🚗 長万部 → ニセコ: 約1時間20分</div>
+                    <div class="note">
+                        💡 函館朝市で新鮮な海の幸を堪能。大沼公園は四季折々の美しさが特徴。ニセコは豊富な温泉が魅力です。
+                    </div>
+                </div>
+
+                <div class="day-card">
+                    <div class="day-badge">5</div>
+                    <h3>5日目: ニセコ → 小樽 → 新千歳空港（帰宅）</h3>
+                    <div class="spots-row">
+                        <div class="spot-item">
+                            <div class="spot-svg">
+                                <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+                                    <polygon points="50,20 30,50 40,65 60,65 70,50" fill="#f39c12"/>
+                                    <polygon points="50,28 35,50 42,62 58,62 65,50" fill="#e67e22"/>
+                                </svg>
+                            </div>
+                            <span class="spot-label">ニセコ</span>
+                        </div>
+                        <div style="align-self: center; color: #7f8c8d;">→</div>
+                        <div class="spot-item">
+                            <div class="spot-svg">
+                                <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+                                    <rect x="25" y="35" width="50" height="40" fill="#8e44ad" rx="3"/>
+                                    <circle cx="35" cy="50" r="4" fill="#fff"/>
+                                    <circle cx="50" cy="50" r="4" fill="#fff"/>
+                                    <circle cx="65" cy="50" r="4" fill="#fff"/>
+                                    <polygon points="50,25 45,35 55,35" fill="#e67e22"/>
+                                </svg>
+                            </div>
+                            <span class="spot-label">小樽</span>
+                        </div>
+                        <div style="align-self: center; color: #7f8c8d;">→</div>
+                        <div class="spot-item">
+                            <div class="spot-svg">
+                                <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+                                    <circle cx="50" cy="40" r="25" fill="#e74c3c"/>
+                                    <polygon points="30,60 50,80 70,60" fill="#c0392b"/>
+                                    <rect x="45" y="35" width="10" height="15" fill="#34495e"/>
+                                </svg>
+                            </div>
+                            <span class="spot-label">新千歳空港</span>
+                        </div>
+                    </div>
+                    <div class="tr-badge">🚗 ニセコ → 小樽: 約1時間10分</div>
+                    <div class="tr-badge">🚗 小樽 → 新千歳空港: 約1時間5分</div>
+                    <div class="note">
+                        💡 小樽運河の散策をお忘れなく。風情ある町並みが写真映えします。帰路は空港に着く前に小樽観光をしっかり楽しみましょう。
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <footer>
+            <p><strong>総移動距離:</strong> 約500km | <strong>総運転時間:</strong> 約15時間</p>
+            <p>地図データ © OpenStreetMap contributors | インタラクティブ地図 © Leaflet</p>
+            <p>このマップはスキル「travel-map」により自動生成されました</p>
+        </footer>
+    </div>
+
+    <script>
+        // Leaflet地図の初期化
+        window.addEventListener('load', function() {
+            if (typeof L === 'undefined') {
+                // オフラインフォールバック
+                document.getElementById('offline-banner').style.display = 'block';
+                document.getElementById('map').style.display = 'none';
+                document.getElementById('map-fallback').style.display = 'flex';
+                return;
+            }
+
+            // 座標データ（北海道ドライブルート）
+            const locations = [
+                {
+                    name: '新千歳空港',
+                    lat: 42.7929,
+                    lng: 141.6920,
+                    type: 'start',
+                    day: 1,
+                    details: '出発地・レンタカー受取',
+                    time: '朝'
+                },
+                {
+                    name: '支笏湖',
+                    lat: 42.7286,
+                    lng: 141.2522,
+                    type: 'spot',
+                    day: 1,
+                    details: '湖畔ランチ',
+                    time: '午前～午後'
+                },
+                {
+                    name: '洞爺湖',
+                    lat: 42.5819,
+                    lng: 140.8339,
+                    type: 'stay',
+                    day: 1,
+                    details: '宿泊',
+                    time: '夕方～夜'
+                },
+                {
+                    name: '昭和新山・有珠山',
+                    lat: 42.5392,
+                    lng: 140.8675,
+                    type: 'spot',
+                    day: 2,
+                    details: 'ロープウェイ利用',
+                    time: '午前'
+                },
+                {
+                    name: '登別温泉',
+                    lat: 42.4484,
+                    lng: 141.1239,
+                    type: 'stay',
+                    day: 2,
+                    details: '宿泊',
+                    time: '午後～夜'
+                },
+                {
+                    name: '函館',
+                    lat: 41.7686,
+                    lng: 140.7292,
+                    type: 'stay',
+                    day: 3,
+                    details: '宿泊',
+                    time: '午後'
+                },
+                {
+                    name: '函館山',
+                    lat: 41.7945,
+                    lng: 140.7363,
+                    type: 'spot',
+                    day: 3,
+                    details: '夜景展望',
+                    time: '夜景タイム'
+                },
+                {
+                    name: '函館朝市',
+                    lat: 41.7675,
+                    lng: 140.7355,
+                    type: 'spot',
+                    day: 4,
+                    details: '朝食',
+                    time: '朝'
+                },
+                {
+                    name: '大沼公園',
+                    lat: 41.9342,
+                    lng: 140.6964,
+                    type: 'spot',
+                    day: 4,
+                    details: '公園散策',
+                    time: '午前'
+                },
+                {
+                    name: '長万部',
+                    lat: 42.3067,
+                    lng: 140.4186,
+                    type: 'spot',
+                    day: 4,
+                    details: '立ち寄り',
+                    time: '午後'
+                },
+                {
+                    name: 'ニセコ',
+                    lat: 42.5939,
+                    lng: 140.6864,
+                    type: 'stay',
+                    day: 4,
+                    details: '宿泊',
+                    time: '夕方～夜'
+                },
+                {
+                    name: '小樽',
+                    lat: 43.1892,
+                    lng: 140.9955,
+                    type: 'spot',
+                    day: 5,
+                    details: '運河散策',
+                    time: '午前'
+                },
+                {
+                    name: '新千歳空港',
+                    lat: 42.7929,
+                    lng: 141.6920,
+                    type: 'end',
+                    day: 5,
+                    details: 'レンタカー返却・帰宅',
+                    time: '午後'
+                }
+            ];
+
+            // 地図の初期化（北海道全域を表示）
+            const map = L.map('map').setView([42.5, 141.0], 8);
+
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '© OpenStreetMap contributors',
+                maxZoom: 19
+            }).addTo(map);
+
+            // マーカーアイコン定義
+            const getIcon = (type) => {
+                const iconMap = {
+                    'start': { emoji: '🚀', color: '#2ecc71' },
+                    'end': { emoji: '🏁', color: '#e74c3c' },
+                    'stay': { emoji: '🏨', color: '#3498db' },
+                    'spot': { emoji: '📍', color: '#f39c12' }
+                };
+
+                const config = iconMap[type] || iconMap['spot'];
+
+                return L.divIcon({
+                    html: `<div style="background-color: ${config.color}; color: white; width: 36px; height: 36px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 18px; border: 3px solid white; box-shadow: 0 2px 8px rgba(0,0,0,0.3);">${config.emoji}</div>`,
+                    iconSize: [36, 36],
+                    className: 'custom-marker'
+                });
+            };
+
+            // マーカーを地図に追加
+            locations.forEach((loc) => {
+                const marker = L.marker([loc.lat, loc.lng], { icon: getIcon(loc.type) }).addTo(map);
+                const popupContent = `
+                    <div style="font-size: 13px; font-weight: 500;">
+                        <strong>${loc.name}</strong><br>
+                        <span style="color: #666;">日程: ${loc.day}日目</span><br>
+                        <span style="color: #666;">時間: ${loc.time}</span><br>
+                        <span style="color: #666;">📝 ${loc.details}</span>
+                    </div>
+                `;
+                marker.bindPopup(popupContent);
+            });
+
+            // ルート線を引く
+            const route = locations.map(loc => [loc.lat, loc.lng]);
+            const polyline = L.polyline(route, {
+                color: '#2c3e50',
+                weight: 3,
+                opacity: 0.7,
+                dashArray: '5, 5'
+            }).addTo(map);
+
+            // 移動情報ラベルの座標・テキスト
+            const movements = [
+                {
+                    from: [42.7929, 141.6920],
+                    to: [42.7286, 141.2522],
+                    text: '🚗 約1h20m',
+                    label: '新千歳→支笏湖'
+                },
+                {
+                    from: [42.7286, 141.2522],
+                    to: [42.5819, 140.8339],
+                    text: '🚗 約1h30m',
+                    label: '支笏湖→洞爺湖'
+                },
+                {
+                    from: [42.5819, 140.8339],
+                    to: [42.5392, 140.8675],
+                    text: '🚗 約20m',
+                    label: '洞爺湖→昭和新山'
+                },
+                {
+                    from: [42.5392, 140.8675],
+                    to: [42.4484, 141.1239],
+                    text: '🚗 約50m',
+                    label: '昭和新山→登別'
+                },
+                {
+                    from: [42.4484, 141.1239],
+                    to: [41.7686, 140.7292],
+                    text: '🚗 2.5h',
+                    label: '登別→函館'
+                },
+                {
+                    from: [41.7686, 140.7292],
+                    to: [41.7945, 140.7363],
+                    text: '🚗 約15m',
+                    label: '函館→函館山'
+                },
+                {
+                    from: [41.7945, 140.7363],
+                    to: [41.7675, 140.7355],
+                    text: '🚗 約10m',
+                    label: '函館山→朝市'
+                },
+                {
+                    from: [41.7675, 140.7355],
+                    to: [41.9342, 140.6964],
+                    text: '🚗 約50m',
+                    label: '朝市→大沼'
+                },
+                {
+                    from: [41.9342, 140.6964],
+                    to: [42.3067, 140.4186],
+                    text: '🚗 約30m',
+                    label: '大沼→長万部'
+                },
+                {
+                    from: [42.3067, 140.4186],
+                    to: [42.5939, 140.6864],
+                    text: '🚗 1h20m',
+                    label: '長万部→ニセコ'
+                },
+                {
+                    from: [42.5939, 140.6864],
+                    to: [43.1892, 140.9955],
+                    text: '🚗 1h10m',
+                    label: 'ニセコ→小樽'
+                },
+                {
+                    from: [43.1892, 140.9955],
+                    to: [42.7929, 141.6920],
+                    text: '🚗 1h05m',
+                    label: '小樽→空港'
+                }
+            ];
+
+            // 移動情報ラベルを追加
+            movements.forEach((move) => {
+                const midLat = (move.from[0] + move.to[0]) / 2;
+                const midLng = (move.from[1] + move.to[1]) / 2;
+
+                const label = L.divIcon({
+                    html: `<div style="background: rgba(44, 62, 80, 0.9); color: white; padding: 6px 10px; border-radius: 4px; font-size: 11px; font-weight: bold; white-space: nowrap; border: 1px solid rgba(255,255,255,0.3);">${move.text}</div>`,
+                    className: 'movement-label'
+                });
+
+                L.marker([midLat, midLng], { icon: label }).addTo(map);
+            });
+
+            // 地図をフィットさせる
+            map.fitBounds(polyline.getBounds(), { padding: [50, 50] });
+        });
+    </script>
+</body>
+</html>
