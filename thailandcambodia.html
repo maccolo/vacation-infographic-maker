@@ -126,6 +126,24 @@
     /* ===== MAP ===== */
     #map { flex: 1; }
 
+    /* ===== TOOLTIP（地図上のラベル）===== */
+    .leaflet-tooltip {
+      background: rgba(253, 246, 236, 0.93) !important;
+      border: 1px solid #d0b898 !important;
+      border-radius: 5px !important;
+      padding: 3px 7px !important;
+      font-size: 0.72em !important;
+      font-weight: 600 !important;
+      color: #3e2010 !important;
+      font-family: 'Hiragino Sans', 'Meiryo', 'Segoe UI', sans-serif !important;
+      white-space: nowrap !important;
+      box-shadow: 0 1px 5px rgba(0,0,0,0.15) !important;
+    }
+    .leaflet-tooltip-right::before  { border-right-color:  rgba(253,246,236,0.93) !important; }
+    .leaflet-tooltip-left::before   { border-left-color:   rgba(253,246,236,0.93) !important; }
+    .leaflet-tooltip-top::before    { border-top-color:    rgba(253,246,236,0.93) !important; }
+    .leaflet-tooltip-bottom::before { border-bottom-color: rgba(253,246,236,0.93) !important; }
+
     /* ===== POPUP ===== */
     .leaflet-popup-content-wrapper {
       background: #fdf6ec !important;
@@ -361,96 +379,112 @@
     const STOPS = {
       th1: {
         lat: 13.9126, lng: 100.6073, zoom: 13, country: 'th', num: 1,
+        label: 'ドンムアン空港', labelDir: 'right',
         name: '✈️ ドンムアン空港（DMK）',
         time: '7/27 14:00',
         desc: 'タクシー/Grab でアユタヤへ（約45分・500〜600バーツ）'
       },
       th2: {
         lat: 14.3540, lng: 100.5679, zoom: 15, country: 'th', num: 2,
+        label: 'アユタヤの宿', labelDir: 'right',
         name: '🏨 アユタヤの宿',
         time: '7/27 15:30',
         desc: 'ナレースワン通り（Naresuan Rd）周辺。チェックイン'
       },
       th3: {
         lat: 14.3561, lng: 100.5690, zoom: 17, country: 'th', num: 3,
+        label: 'ワット・マハタート', labelDir: 'right',
         name: '🛕 ワット・マハタート（仏頭）',
         time: '7/27 16:30〜',
         desc: '木の根に包まれた仏頭が有名。夕暮れ観光'
       },
       th4: {
         lat: 14.3421, lng: 100.5497, zoom: 16, country: 'th', num: 4,
+        label: 'ワット・チャイワッタナラーム', labelDir: 'left',
         name: '🛕 ワット・チャイワッタナラーム',
         time: '7/27 17:30〜19:00',
         desc: '川沿いの絶景遺跡。夕日・ライトアップ観光'
       },
       th5: {
         lat: 14.3543, lng: 100.5697, zoom: 17, country: 'th', num: 5,
+        label: 'バン・ラン・ナイトマーケット', labelDir: 'right',
         name: '🌃 バン・ラン・ナイトマーケット',
         time: '7/27 19:00〜',
         desc: 'タイのB級グルメをテイクアウト'
       },
       th6: {
         lat: 14.3958, lng: 100.5769, zoom: 15, country: 'th', num: 6,
+        label: 'エレファント・キャンプ', labelDir: 'right',
         name: '🐘 アユタヤ・エレファント・キャンプ',
         time: '7/28 08:30〜10:30',
         desc: '象乗り体験'
       },
       th7: {
         lat: 14.3542, lng: 100.5576, zoom: 16, country: 'th', num: 7,
+        label: 'ワット・ロカヤスタ', labelDir: 'left',
         name: '🛕 ワット・ロカヤスタ（寝釈迦仏）',
         time: '7/28 〜10:30',
         desc: '全長28mの巨大な寝釈迦仏'
       },
       kh1: {
         lat: 13.4106, lng: 103.8126, zoom: 13, country: 'kh', num: 9,
+        label: 'シェムリアップ空港', labelDir: 'left',
         name: '✈️ シェムリアップ空港（SAI）',
         time: '7/28 16:10 / 7/30 09:35出発',
         desc: 'バス$9 / タクシー$35 → 市内へ（約1時間）'
       },
       kh2: {
         lat: 13.3621, lng: 103.8597, zoom: 15, country: 'kh', num: 10,
+        label: 'シェムリアップの宿', labelDir: 'right',
         name: '🏨 シェムリアップの宿',
         time: '7/28 17:30',
         desc: 'シヴァタ通り（Sivatha Blvd）沿い'
       },
       kh3: {
         lat: 13.3628, lng: 103.8556, zoom: 16, country: 'kh', num: 11,
+        label: 'カンボジア・マーケット', labelDir: 'left',
         name: '🛍️ メイド・イン・カンボジア・マーケット',
         time: '7/28 18:30〜',
         desc: '銀細工・伝統シルク織物をチェック'
       },
       kh4: {
         lat: 13.3622, lng: 103.8616, zoom: 16, country: 'kh', num: 12,
+        label: 'オールド・マーケット', labelDir: 'right',
         name: '🛍️ オールド・マーケット（プサー・チャス）',
         time: '7/28 19:00〜',
         desc: '夜ごはん調達（またはラッキーモール / Nham24）'
       },
       kh5: {
         lat: 13.4125, lng: 103.8670, zoom: 15, country: 'kh', num: 13,
+        label: 'アンコールワット', labelDir: 'right',
         name: '🌅 アンコールワット',
         time: '7/29 05:00〜07:30',
         desc: '朝日鑑賞。トゥクトゥク1日チャーター（$25〜30）/ 宿から約20分'
       },
       kh6: {
         lat: 13.4414, lng: 103.8588, zoom: 15, country: 'kh', num: 14,
+        label: 'アンコール・トム', labelDir: 'left',
         name: '🏛️ アンコール・トム / バイヨン寺院',
         time: '7/29 08:30〜',
         desc: '巨顔の塔が並ぶ壮大な寺院群'
       },
       kh7: {
         lat: 13.4349, lng: 103.8892, zoom: 15, country: 'kh', num: 15,
+        label: 'タ・プローム', labelDir: 'right',
         name: '🌳 タ・プローム',
         time: '7/29 〜11:00',
         desc: 'ガジュマルの巨樹が遺跡を包む幻想的な場所'
       },
       kh8: {
         lat: 13.5993, lng: 103.9674, zoom: 14, country: 'kh', num: 16,
+        label: 'バンテアイ・スレイ', labelDir: 'right',
         name: '🏛️ バンテアイ・スレイ',
         time: '7/29 11:00〜14:30',
         desc: '「東洋のモナリザ」赤色砂岩の精緻なレリーフ。タ・プロームから約50分'
       },
       kh9: {
         lat: 13.3634, lng: 103.8540, zoom: 15, country: 'kh', num: 17,
+        label: 'アーティザン・アンコール', labelDir: 'left',
         name: '🎨 アーティザン・アンコール',
         time: '7/29 14:30〜17:00',
         desc: 'シルク織物・銀細工の工房見学。バンテアイ・スレイから約50分'
@@ -487,6 +521,11 @@
           <div class="popup-name">${s.name}</div>
           <div class="popup-body">${s.desc}</div>
         `, { maxWidth: 240, minWidth: 180 })
+        .bindTooltip(s.label, {
+          permanent: true,
+          direction: s.labelDir || 'right',
+          offset: s.labelDir === 'left' ? [-12, 0] : [12, 0]
+        })
         .addTo(map);
       markerRefs[id] = m;
     });
