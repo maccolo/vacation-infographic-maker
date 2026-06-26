@@ -1,0 +1,591 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>タイ・カンボジア 旅行マップ 2025年7月</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css" />
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: 'Hiragino Sans', 'Meiryo', 'Segoe UI', sans-serif;
+      display: flex;
+      height: 100vh;
+      overflow: hidden;
+      background: #fdf6ec;
+      color: #2e1f0e;
+    }
+
+    /* ===== SIDEBAR ===== */
+    #sidebar {
+      width: 340px;
+      flex-shrink: 0;
+      display: flex;
+      flex-direction: column;
+      background: #fdf6ec;
+      overflow-y: auto;
+      border-right: 1px solid #e0ceb0;
+      box-shadow: 2px 0 10px rgba(0,0,0,0.08);
+      z-index: 10;
+    }
+
+    .sidebar-header {
+      background: linear-gradient(135deg, #8b2500 0%, #c84b10 55%, #e8a020 100%);
+      padding: 18px 20px;
+      color: #fff;
+      flex-shrink: 0;
+    }
+    .sidebar-header h1 { font-size: 1.05em; font-weight: bold; letter-spacing: 0.02em; }
+    .sidebar-header p { font-size: 0.75em; color: rgba(255,255,255,0.8); margin-top: 5px; }
+
+    .country-header {
+      padding: 9px 14px;
+      font-size: 0.8em;
+      font-weight: bold;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      position: sticky;
+      top: 0;
+      z-index: 20;
+      letter-spacing: 0.03em;
+    }
+    .th-header { background: #c0392b; color: #fff; }
+    .kh-header { background: #1a5276; color: #fff; }
+
+    .day-label {
+      padding: 5px 14px;
+      font-size: 0.7em;
+      color: #9a7860;
+      background: #f5ede0;
+      border-bottom: 1px solid #e8d8c0;
+    }
+
+    .stop-row {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      padding: 9px 14px;
+      border-bottom: 1px solid #eeddc4;
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+    .stop-row:hover { background: #faebd0; }
+    .stop-row.active { background: #fae0c0; }
+
+    .pin {
+      width: 26px;
+      height: 26px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.68em;
+      font-weight: bold;
+      flex-shrink: 0;
+      margin-top: 2px;
+      border: 2px solid rgba(255,255,255,0.75);
+      box-shadow: 0 1px 4px rgba(0,0,0,0.2);
+    }
+    .pin.th { background: #c0392b; color: #fff; }
+    .pin.kh { background: #1a5276; color: #fff; }
+    .pin.fly { background: #7d3c98; color: #fff; font-size: 1em; }
+
+    .stop-text { flex: 1; min-width: 0; }
+    .stop-time { font-size: 0.68em; color: #a08060; margin-bottom: 1px; }
+    .stop-name { font-size: 0.82em; color: #3e2010; margin: 2px 0; line-height: 1.35; font-weight: 500; }
+    .stop-desc { font-size: 0.7em; color: #8a7060; line-height: 1.45; }
+
+    .flight-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 9px 14px;
+      background: #f3eaf8;
+      border-top: 1px solid #d8c8e8;
+      border-bottom: 1px solid #d8c8e8;
+    }
+    .flight-row span { font-size: 0.78em; color: #7d3c98; font-weight: 500; }
+
+    .sidebar-footer {
+      padding: 12px 14px;
+      font-size: 0.68em;
+      color: #bbb;
+      text-align: center;
+      background: #f5ede0;
+      border-top: 1px solid #e8d8c0;
+      flex-shrink: 0;
+    }
+
+    /* Scrollbar */
+    #sidebar::-webkit-scrollbar { width: 4px; }
+    #sidebar::-webkit-scrollbar-track { background: #f5ede0; }
+    #sidebar::-webkit-scrollbar-thumb { background: #c8a880; border-radius: 2px; }
+
+    /* ===== MAP ===== */
+    #map { flex: 1; }
+
+    /* ===== POPUP ===== */
+    .leaflet-popup-content-wrapper {
+      background: #fdf6ec !important;
+      border: 1px solid #ddd !important;
+      border-radius: 10px !important;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.15) !important;
+      color: #2e1f0e !important;
+    }
+    .leaflet-popup-tip { background: #fdf6ec !important; }
+    .leaflet-popup-content { margin: 12px 16px !important; }
+    .popup-time { font-size: 0.7em; color: #a08060; margin-bottom: 3px; }
+    .popup-name { font-size: 0.9em; font-weight: bold; color: #3e2010; margin-bottom: 5px; line-height: 1.3; }
+    .popup-body { font-size: 0.78em; color: #6a5040; line-height: 1.55; }
+  </style>
+</head>
+<body>
+
+  <div id="sidebar">
+    <div class="sidebar-header">
+      <h1>🗺️ タイ・カンボジア 旅行マップ</h1>
+      <p>2025年7月27日（土）〜 30日（火）</p>
+    </div>
+
+    <!-- ===== THAILAND ===== -->
+    <div class="country-header th-header">🇹🇭 タイ（アユタヤ）</div>
+
+    <div class="day-label">📅 7月27日（土）</div>
+
+    <div class="stop-row" onclick="goto('th1')">
+      <div class="pin th">1</div>
+      <div class="stop-text">
+        <div class="stop-time">14:00</div>
+        <div class="stop-name">✈️ ドンムアン空港（DMK）着</div>
+        <div class="stop-desc">タクシー/Grab → アユタヤへ（約45分・500〜600バーツ）</div>
+      </div>
+    </div>
+
+    <div class="stop-row" onclick="goto('th2')">
+      <div class="pin th">2</div>
+      <div class="stop-text">
+        <div class="stop-time">15:30</div>
+        <div class="stop-name">🏨 アユタヤの宿（チェックイン）</div>
+        <div class="stop-desc">ナレースワン通り（Naresuan Rd）周辺</div>
+      </div>
+    </div>
+
+    <div class="stop-row" onclick="goto('th3')">
+      <div class="pin th">3</div>
+      <div class="stop-text">
+        <div class="stop-time">16:30〜</div>
+        <div class="stop-name">🛕 ワット・マハタート（仏頭）</div>
+        <div class="stop-desc">夕暮れ観光 / トゥクトゥク or Grab（5〜10分）</div>
+      </div>
+    </div>
+
+    <div class="stop-row" onclick="goto('th4')">
+      <div class="pin th">4</div>
+      <div class="stop-text">
+        <div class="stop-time">17:30〜19:00</div>
+        <div class="stop-name">🛕 ワット・チャイワッタナラーム</div>
+        <div class="stop-desc">夕日・ライトアップ観光</div>
+      </div>
+    </div>
+
+    <div class="stop-row" onclick="goto('th5')">
+      <div class="pin th">5</div>
+      <div class="stop-text">
+        <div class="stop-time">19:00〜</div>
+        <div class="stop-name">🌃 バン・ラン・ナイトマーケット</div>
+        <div class="stop-desc">タイのB級グルメをテイクアウト</div>
+      </div>
+    </div>
+
+    <div class="day-label">📅 7月28日（日）</div>
+
+    <div class="stop-row" onclick="goto('th6')">
+      <div class="pin th">6</div>
+      <div class="stop-text">
+        <div class="stop-time">08:30〜10:30</div>
+        <div class="stop-name">🐘 アユタヤ・エレファント・キャンプ</div>
+        <div class="stop-desc">象乗り体験 / トゥクトゥク or Grab（5〜10分）</div>
+      </div>
+    </div>
+
+    <div class="stop-row" onclick="goto('th7')">
+      <div class="pin th">7</div>
+      <div class="stop-text">
+        <div class="stop-time">〜10:30</div>
+        <div class="stop-name">🛕 ワット・ロカヤスタ（寝釈迦仏）</div>
+        <div class="stop-desc">全長28mの巨大な寝釈迦仏を見学</div>
+      </div>
+    </div>
+
+    <div class="stop-row" onclick="goto('th2')">
+      <div class="pin th">8</div>
+      <div class="stop-text">
+        <div class="stop-time">11:00</div>
+        <div class="stop-name">🏨 宿チェックアウト → DMK へ</div>
+        <div class="stop-desc">タクシー/Grab（約45分）</div>
+      </div>
+    </div>
+
+    <!-- ===== FLIGHT ===== -->
+    <div class="flight-row">
+      <div class="pin fly">✈</div>
+      <span>DMK 15:10発 → シェムリアップ（SAI）16:10着</span>
+    </div>
+
+    <!-- ===== CAMBODIA ===== -->
+    <div class="country-header kh-header">🇰🇭 カンボジア（シェムリアップ）</div>
+
+    <div class="day-label">📅 7月28日（日）</div>
+
+    <div class="stop-row" onclick="goto('kh1')">
+      <div class="pin kh">9</div>
+      <div class="stop-text">
+        <div class="stop-time">16:10</div>
+        <div class="stop-name">✈️ シェムリアップ空港（SAI）着</div>
+        <div class="stop-desc">バス$9 / タクシー$35 → 市内へ（約1時間）</div>
+      </div>
+    </div>
+
+    <div class="stop-row" onclick="goto('kh2')">
+      <div class="pin kh">10</div>
+      <div class="stop-text">
+        <div class="stop-time">17:30</div>
+        <div class="stop-name">🏨 シェムリアップの宿（チェックイン）</div>
+        <div class="stop-desc">シヴァタ通り（Sivatha Blvd）沿い</div>
+      </div>
+    </div>
+
+    <div class="stop-row" onclick="goto('kh3')">
+      <div class="pin kh">11</div>
+      <div class="stop-text">
+        <div class="stop-time">18:30〜</div>
+        <div class="stop-name">🛍️ メイド・イン・カンボジア・マーケット</div>
+        <div class="stop-desc">銀細工・伝統シルク織物をチェック</div>
+      </div>
+    </div>
+
+    <div class="stop-row" onclick="goto('kh4')">
+      <div class="pin kh">12</div>
+      <div class="stop-text">
+        <div class="stop-time">19:00〜</div>
+        <div class="stop-name">🛍️ オールド・マーケット（プサー・チャス）</div>
+        <div class="stop-desc">夜ごはん調達（またはラッキーモール / Nham24）</div>
+      </div>
+    </div>
+
+    <div class="day-label">📅 7月29日（月）★ 遺跡&伝統工芸 満喫の1日</div>
+
+    <div class="stop-row" onclick="goto('kh5')">
+      <div class="pin kh">13</div>
+      <div class="stop-text">
+        <div class="stop-time">05:00〜07:30</div>
+        <div class="stop-name">🌅 アンコールワット（朝日）</div>
+        <div class="stop-desc">トゥクトゥク1日チャーター（$25〜30）/ 宿から約20分</div>
+      </div>
+    </div>
+
+    <div class="stop-row" onclick="goto('kh6')">
+      <div class="pin kh">14</div>
+      <div class="stop-text">
+        <div class="stop-time">08:30〜</div>
+        <div class="stop-name">🏛️ アンコール・トム / バイヨン寺院</div>
+        <div class="stop-desc">巨顔の塔が並ぶ壮大な寺院群</div>
+      </div>
+    </div>
+
+    <div class="stop-row" onclick="goto('kh7')">
+      <div class="pin kh">15</div>
+      <div class="stop-text">
+        <div class="stop-time">〜11:00</div>
+        <div class="stop-name">🌳 タ・プローム</div>
+        <div class="stop-desc">ガジュマルの巨樹が遺跡を包む幻想的な場所</div>
+      </div>
+    </div>
+
+    <div class="stop-row" onclick="goto('kh8')">
+      <div class="pin kh">16</div>
+      <div class="stop-text">
+        <div class="stop-time">11:00〜14:30</div>
+        <div class="stop-name">🏛️ バンテアイ・スレイ</div>
+        <div class="stop-desc">「東洋のモナリザ」赤色砂岩の精緻なレリーフ / 約50分</div>
+      </div>
+    </div>
+
+    <div class="stop-row" onclick="goto('kh9')">
+      <div class="pin kh">17</div>
+      <div class="stop-text">
+        <div class="stop-time">14:30〜17:00</div>
+        <div class="stop-name">🎨 アーティザン・アンコール</div>
+        <div class="stop-desc">シルク織物・銀細工の工房見学 / 約50分</div>
+      </div>
+    </div>
+
+    <div class="day-label">📅 7月30日（火）</div>
+
+    <div class="stop-row" onclick="goto('kh2')">
+      <div class="pin kh">18</div>
+      <div class="stop-text">
+        <div class="stop-time">06:30</div>
+        <div class="stop-name">🏨 宿チェックアウト → 空港へ</div>
+        <div class="stop-desc">空港タクシー（約1時間）</div>
+      </div>
+    </div>
+
+    <div class="stop-row" onclick="goto('kh1')">
+      <div class="pin kh">19</div>
+      <div class="stop-text">
+        <div class="stop-time">09:35</div>
+        <div class="stop-name">✈️ シェムリアップ空港（SAI）出発</div>
+        <div class="stop-desc">→ ホーチミン（11:00着）友人と合流！</div>
+      </div>
+    </div>
+
+    <div class="sidebar-footer">マーカーまたは左のリストをクリックしてスポットへ移動</div>
+  </div>
+
+  <div id="map"></div>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+  <script>
+    // ===== MAP =====
+    const map = L.map('map').setView([13.9, 102.5], 7);
+
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '&copy; <a href="https://openstreetmap.org">OpenStreetMap</a> contributors',
+      maxZoom: 19
+    }).addTo(map);
+
+    // ===== STOP DATA =====
+    const STOPS = {
+      th1: {
+        lat: 13.9126, lng: 100.6073, zoom: 13, country: 'th', num: 1,
+        name: '✈️ ドンムアン空港（DMK）',
+        time: '7/27 14:00',
+        desc: 'タクシー/Grab でアユタヤへ（約45分・500〜600バーツ）'
+      },
+      th2: {
+        lat: 14.3540, lng: 100.5679, zoom: 15, country: 'th', num: 2,
+        name: '🏨 アユタヤの宿',
+        time: '7/27 15:30',
+        desc: 'ナレースワン通り（Naresuan Rd）周辺。チェックイン'
+      },
+      th3: {
+        lat: 14.3561, lng: 100.5690, zoom: 17, country: 'th', num: 3,
+        name: '🛕 ワット・マハタート（仏頭）',
+        time: '7/27 16:30〜',
+        desc: '木の根に包まれた仏頭が有名。夕暮れ観光'
+      },
+      th4: {
+        lat: 14.3421, lng: 100.5497, zoom: 16, country: 'th', num: 4,
+        name: '🛕 ワット・チャイワッタナラーム',
+        time: '7/27 17:30〜19:00',
+        desc: '川沿いの絶景遺跡。夕日・ライトアップ観光'
+      },
+      th5: {
+        lat: 14.3543, lng: 100.5697, zoom: 17, country: 'th', num: 5,
+        name: '🌃 バン・ラン・ナイトマーケット',
+        time: '7/27 19:00〜',
+        desc: 'タイのB級グルメをテイクアウト'
+      },
+      th6: {
+        lat: 14.3958, lng: 100.5769, zoom: 15, country: 'th', num: 6,
+        name: '🐘 アユタヤ・エレファント・キャンプ',
+        time: '7/28 08:30〜10:30',
+        desc: '象乗り体験'
+      },
+      th7: {
+        lat: 14.3542, lng: 100.5576, zoom: 16, country: 'th', num: 7,
+        name: '🛕 ワット・ロカヤスタ（寝釈迦仏）',
+        time: '7/28 〜10:30',
+        desc: '全長28mの巨大な寝釈迦仏'
+      },
+      kh1: {
+        lat: 13.4106, lng: 103.8126, zoom: 13, country: 'kh', num: 9,
+        name: '✈️ シェムリアップ空港（SAI）',
+        time: '7/28 16:10 / 7/30 09:35出発',
+        desc: 'バス$9 / タクシー$35 → 市内へ（約1時間）'
+      },
+      kh2: {
+        lat: 13.3621, lng: 103.8597, zoom: 15, country: 'kh', num: 10,
+        name: '🏨 シェムリアップの宿',
+        time: '7/28 17:30',
+        desc: 'シヴァタ通り（Sivatha Blvd）沿い'
+      },
+      kh3: {
+        lat: 13.3628, lng: 103.8556, zoom: 16, country: 'kh', num: 11,
+        name: '🛍️ メイド・イン・カンボジア・マーケット',
+        time: '7/28 18:30〜',
+        desc: '銀細工・伝統シルク織物をチェック'
+      },
+      kh4: {
+        lat: 13.3622, lng: 103.8616, zoom: 16, country: 'kh', num: 12,
+        name: '🛍️ オールド・マーケット（プサー・チャス）',
+        time: '7/28 19:00〜',
+        desc: '夜ごはん調達（またはラッキーモール / Nham24）'
+      },
+      kh5: {
+        lat: 13.4125, lng: 103.8670, zoom: 15, country: 'kh', num: 13,
+        name: '🌅 アンコールワット',
+        time: '7/29 05:00〜07:30',
+        desc: '朝日鑑賞。トゥクトゥク1日チャーター（$25〜30）/ 宿から約20分'
+      },
+      kh6: {
+        lat: 13.4414, lng: 103.8588, zoom: 15, country: 'kh', num: 14,
+        name: '🏛️ アンコール・トム / バイヨン寺院',
+        time: '7/29 08:30〜',
+        desc: '巨顔の塔が並ぶ壮大な寺院群'
+      },
+      kh7: {
+        lat: 13.4349, lng: 103.8892, zoom: 15, country: 'kh', num: 15,
+        name: '🌳 タ・プローム',
+        time: '7/29 〜11:00',
+        desc: 'ガジュマルの巨樹が遺跡を包む幻想的な場所'
+      },
+      kh8: {
+        lat: 13.5993, lng: 103.9674, zoom: 14, country: 'kh', num: 16,
+        name: '🏛️ バンテアイ・スレイ',
+        time: '7/29 11:00〜14:30',
+        desc: '「東洋のモナリザ」赤色砂岩の精緻なレリーフ。タ・プロームから約50分'
+      },
+      kh9: {
+        lat: 13.3634, lng: 103.8540, zoom: 15, country: 'kh', num: 17,
+        name: '🎨 アーティザン・アンコール',
+        time: '7/29 14:30〜17:00',
+        desc: 'シルク織物・銀細工の工房見学。バンテアイ・スレイから約50分'
+      }
+    };
+
+    // ===== ICONS =====
+    function makeIcon(num, country) {
+      const bg = country === 'th' ? '#c0392b' : '#1a5276';
+      return L.divIcon({
+        html: `<div style="
+          width:30px;height:30px;border-radius:50%;
+          background:${bg};color:#fff;
+          display:flex;align-items:center;justify-content:center;
+          font-size:11px;font-weight:bold;
+          border:2.5px solid rgba(255,255,255,0.85);
+          box-shadow:0 2px 8px rgba(0,0,0,0.28);
+          user-select:none;
+        ">${num}</div>`,
+        className: '',
+        iconSize: [30, 30],
+        iconAnchor: [15, 15],
+        popupAnchor: [0, -17]
+      });
+    }
+
+    // ===== ADD MARKERS =====
+    const markerRefs = {};
+
+    Object.entries(STOPS).forEach(([id, s]) => {
+      const m = L.marker([s.lat, s.lng], { icon: makeIcon(s.num, s.country) })
+        .bindPopup(`
+          <div class="popup-time">${s.time}</div>
+          <div class="popup-name">${s.name}</div>
+          <div class="popup-body">${s.desc}</div>
+        `, { maxWidth: 240, minWidth: 180 })
+        .addTo(map);
+      markerRefs[id] = m;
+    });
+
+    // ===== ROUTE LINES =====
+
+    // Thailand Day 1: DMK → Hotel → Wat Mahathat → Wat Chai → Night Market
+    L.polyline([
+      [13.9126, 100.6073],
+      [14.3540, 100.5679],
+      [14.3561, 100.5690],
+      [14.3421, 100.5497],
+      [14.3543, 100.5697]
+    ], { color: '#c0392b', weight: 2.5, opacity: 0.7 }).addTo(map);
+
+    // Thailand Day 2: Hotel → Elephant → Wat Loka → Hotel → DMK
+    L.polyline([
+      [14.3540, 100.5679],
+      [14.3958, 100.5769],
+      [14.3542, 100.5576],
+      [14.3540, 100.5679],
+      [13.9126, 100.6073]
+    ], { color: '#c0392b', weight: 2.5, opacity: 0.7 }).addTo(map);
+
+    // Flight: DMK → SAI (dashed)
+    L.polyline([
+      [13.9126, 100.6073],
+      [13.4106, 103.8126]
+    ], { color: '#7d3c98', weight: 2.2, opacity: 0.85, dashArray: '9 6' }).addTo(map);
+
+    // Cambodia Day 1: SAI → Hotel → Markets
+    L.polyline([
+      [13.4106, 103.8126],
+      [13.3621, 103.8597],
+      [13.3628, 103.8556],
+      [13.3622, 103.8616]
+    ], { color: '#1a5276', weight: 2.5, opacity: 0.7 }).addTo(map);
+
+    // Cambodia Day 2: Hotel → Angkor Wat → Hotel → Angkor Thom → Ta Prohm → Banteay Srei → Artisans → Hotel
+    L.polyline([
+      [13.3621, 103.8597],
+      [13.4125, 103.8670],
+      [13.3621, 103.8597],
+      [13.4414, 103.8588],
+      [13.4349, 103.8892],
+      [13.5993, 103.9674],
+      [13.3634, 103.8540],
+      [13.3621, 103.8597]
+    ], { color: '#1a5276', weight: 2.5, opacity: 0.7 }).addTo(map);
+
+    // Cambodia Day 3: Hotel → SAI (dashed)
+    L.polyline([
+      [13.3621, 103.8597],
+      [13.4106, 103.8126]
+    ], { color: '#1a5276', weight: 2.5, opacity: 0.65, dashArray: '7 5' }).addTo(map);
+
+    // ===== LEGEND =====
+    const legend = L.control({ position: 'bottomright' });
+    legend.onAdd = function() {
+      const div = L.DomUtil.create('div');
+      div.style.cssText = [
+        'background:#fdf6ec',
+        'border:1px solid #ddd',
+        'border-radius:10px',
+        'padding:10px 14px',
+        'font-size:0.75em',
+        'color:#4a3020',
+        "font-family:'Hiragino Sans','Meiryo','Segoe UI',sans-serif",
+        'box-shadow:0 2px 10px rgba(0,0,0,0.12)',
+        'line-height:1.9'
+      ].join(';');
+      div.innerHTML = `
+        <div style="font-weight:bold;margin-bottom:6px;color:#3e2010;">凡例</div>
+        <div style="display:flex;align-items:center;gap:7px;">
+          <svg width="22" height="6" style="flex-shrink:0"><line x1="0" y1="3" x2="22" y2="3" stroke="#c0392b" stroke-width="2.5"/></svg>
+          🇹🇭 タイ（地上移動）
+        </div>
+        <div style="display:flex;align-items:center;gap:7px;">
+          <svg width="22" height="6" style="flex-shrink:0"><line x1="0" y1="3" x2="22" y2="3" stroke="#1a5276" stroke-width="2.5"/></svg>
+          🇰🇭 カンボジア（地上移動）
+        </div>
+        <div style="display:flex;align-items:center;gap:7px;">
+          <svg width="22" height="6" style="flex-shrink:0"><line x1="0" y1="3" x2="22" y2="3" stroke="#7d3c98" stroke-width="2" stroke-dasharray="6 4"/></svg>
+          ✈️ フライト
+        </div>
+      `;
+      return div;
+    };
+    legend.addTo(map);
+
+    // ===== GOTO FUNCTION (sidebar click) =====
+    function goto(id) {
+      const s = STOPS[id];
+      if (!s) return;
+      map.flyTo([s.lat, s.lng], s.zoom, { duration: 1.0, easeLinearity: 0.25 });
+      if (markerRefs[id]) {
+        setTimeout(() => markerRefs[id].openPopup(), 1100);
+      }
+    }
+  </script>
+</body>
+</html>
